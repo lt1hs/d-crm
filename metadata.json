@@ -1,0 +1,5 @@
+{
+  "name": "Aspire HR Dashboard",
+  "description": "A professional, multi-language admin dashboard for HR management, inspired by the Aspire UI. It provides a comprehensive overview of payroll, time off requests, company holidays, and other key HR metrics.",
+  "requestFramePermissions": []
+}

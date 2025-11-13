@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/imgs/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="AL-DALEEL-CRM - Modern CRM and Content Management System" />
+    <title>AL-DALEEL-CRM - Content Management System</title>
+    <style>
+      /* Custom CSS variables for theming */
+      :root {
+        --border: 214 32% 91%;
+        --input: 214 32% 91%;
+        --ring: 201 90% 27%;
+        --background: 0 0% 100%;
+        --foreground: 222 47% 11%;
+        --primary: 201 90% 27%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 214 32% 91%;
+        --secondary-foreground: 222 47% 11%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 100%;
+        --muted: 214 32% 91%;
+        --muted-foreground: 215 16% 47%;
+        --accent: 214 32% 91%;
+        --accent-foreground: 222 47% 11%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222 47% 11%;
+        --card: 0 0% 100%;
+        --card-foreground: 222 47% 11%;
+        --radius: 0.5rem;
+      }
+      
+      .dark {
+        --border: 215 28% 17%;
+        --input: 215 28% 17%;
+        --ring: 201 90% 27%;
+        --background: 222 47% 11%;
+        --foreground: 213 31% 91%;
+        --primary: 201 90% 27%;
+        --primary-foreground: 222 47% 11%;
+        --secondary: 215 28% 17%;
+        --secondary-foreground: 213 31% 91%;
+        --destructive: 0 63% 31%;
+        --destructive-foreground: 213 31% 91%;
+        --muted: 215 28% 17%;
+        --muted-foreground: 217 11% 65%;
+        --accent: 215 28% 17%;
+        --accent-foreground: 213 31% 91%;
+        --popover: 222 47% 11%;
+        --popover-foreground: 213 31% 91%;
+        --card: 222 47% 11%;
+        --card-foreground: 213 31% 91%;
+      }
+
+      /* Custom font to match the design */
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+      
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
