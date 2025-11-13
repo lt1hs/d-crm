@@ -91,7 +91,7 @@ const ChatManagement: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden p-4 gap-4">
+      <div className="flex-1 flex overflow-hidden p-4 gap-4 min-h-0">
         {/* Sidebar - Channels/Groups */}
         {showSidebar && (
           <div className="w-64 flex-shrink-0">
@@ -109,8 +109,8 @@ const ChatManagement: React.FC = () => {
         </div>
 
         {/* Messages View */}
-        <div className="flex-1 min-w-0">
-          <div className="h-full bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="flex-1 min-w-0 relative">
+          <div className="absolute inset-0 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             {activeConversation ? (
               <ChatMessageView />
             ) : (
