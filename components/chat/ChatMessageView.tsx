@@ -4,7 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import { 
   IconSend, IconPaperclip, IconMoreVertical, IconPin,
   IconArchive, IconTrash, IconEdit, IconX, IconChevronLeft,
-  IconMicrophone, IconSearch, IconStar, IconShare, IconDownload, IconImage
+  IconMicrophone, IconSearch, IconStar, IconShare, IconDownload, IconImage,
+  IconCalendar, IconClock
 } from '../Icons';
 import { formatDistanceToNow } from '../../utils/chatHelpers.ts';
 import VoiceRecorder from './VoiceRecorder';
@@ -16,6 +17,7 @@ import MediaGallery from './MediaGallery';
 import ExportChat from './ExportChat';
 import MentionInput from './MentionInput';
 import EnhancedMessageInput from './EnhancedMessageInput';
+import TimeOffRequest, { TimeOffRequestData } from './TimeOffRequest';
 
 const ChatMessageView: React.FC = () => {
   const { 
@@ -41,6 +43,7 @@ const ChatMessageView: React.FC = () => {
   const [forwardingMessage, setForwardingMessage] = useState<any | null>(null);
   const [showMediaGallery, setShowMediaGallery] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showTimeOffRequest, setShowTimeOffRequest] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -128,6 +131,124 @@ const ChatMessageView: React.FC = () => {
         messageElement.classList.remove('highlight-message');
       }, 2000);
     }
+  };
+
+  const handleTimeOffRequest = (request: TimeOffRequestData) => {
+    // Format the time off request message with special marker
+    const message = `[TIME_OFF_REQUEST]${JSON.stringify(request)}`;
+    
+    sendMessage(activeConversation.id, message);
+  };
+
+  const renderMessageContent = (msg: any) => {
+    // Check if it's a time-off request message
+    if (msg.content.startsWith('[TIME_OFF_REQUEST]')) {
+      try {
+        const data = JSON.parse(msg.content.replace('[TIME_OFF_REQUEST]', ''));
+        const isOwn = msg.senderId === currentUser?.id;
+        
+        return (
+          <div className={`rounded-xl overflow-hidden shadow-lg border-2 ${
+            isOwn 
+              ? 'border-blue-400 dark:border-blue-500' 
+              : 'border-green-400 dark:border-green-500'
+          }`}>
+            {/* Header */}
+            <div className={`px-4 py-3 ${
+              isOwn
+                ? 'bg-gradient-to-r from-blue-500 to-blue-600'
+                : 'bg-gradient-to-r from-green-500 to-green-600'
+            }`}>
+              <div className="flex items-center gap-2 text-white">
+                <IconCalendar className="w-5 h-5" />
+                <span className="font-semibold text-base">Time Off Request</span>
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className={`px-4 py-4 ${
+              isOwn
+                ? 'bg-blue-50 dark:bg-blue-900/20'
+                : 'bg-green-50 dark:bg-green-900/20'
+            }`}>
+              <div className="space-y-3">
+                {/* Date */}
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${
+                    isOwn
+                      ? 'bg-blue-100 dark:bg-blue-800/30'
+                      : 'bg-green-100 dark:bg-green-800/30'
+                  }`}>
+                    <IconCalendar className={`w-4 h-4 ${
+                      isOwn
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : 'text-green-600 dark:text-green-400'
+                    }`} />
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">Date</div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {new Date(data.date).toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Time Range */}
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${
+                    isOwn
+                      ? 'bg-blue-100 dark:bg-blue-800/30'
+                      : 'bg-green-100 dark:bg-green-800/30'
+                  }`}>
+                    <IconClock className={`w-4 h-4 ${
+                      isOwn
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : 'text-green-600 dark:text-green-400'
+                    }`} />
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">Time</div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {data.startTime} - {data.endTime}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className={`px-4 py-2 text-xs text-center ${
+              isOwn
+                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+            }`}>
+              {isOwn ? 'Request sent' : 'Request received'}
+            </div>
+          </div>
+        );
+      } catch (e) {
+        return <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>;
+      }
+    }
+    
+    // Regular message
+    if (msg.type === 'file') {
+      return (
+        <div className="flex items-center gap-2">
+          <IconPaperclip className="w-4 h-4" />
+          <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="underline hover:opacity-80">
+            {msg.fileName}
+          </a>
+        </div>
+      );
+    }
+    
+    return <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>;
   };
 
   return (
@@ -300,26 +421,24 @@ const ChatMessageView: React.FC = () => {
                     </div>
                   ) : (
                     <div className="group relative">
-                      {/* Modern Message Bubble with Shadow & Animation */}
-                      <div className={`px-4 py-2 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
-                        isOwn 
-                          ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white' 
-                          : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-100 dark:border-gray-700'
-                      }`}>
-                        {msg.type === 'file' ? (
-                          <div className="flex items-center gap-2">
-                            <IconPaperclip className="w-4 h-4" />
-                            <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="underline hover:opacity-80">
-                              {msg.fileName}
-                            </a>
-                          </div>
-                        ) : (
-                          <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                        )}
-                        {msg.edited && (
-                          <span className="text-xs opacity-70 ml-2">(edited)</span>
-                        )}
-                      </div>
+                      {/* Check if it's a time-off request */}
+                      {msg.content.startsWith('[TIME_OFF_REQUEST]') ? (
+                        <div>
+                          {renderMessageContent(msg)}
+                        </div>
+                      ) : (
+                        /* Modern Message Bubble with Shadow & Animation */
+                        <div className={`px-4 py-2 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md ${
+                          isOwn 
+                            ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white' 
+                            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-100 dark:border-gray-700'
+                        }`}>
+                          {renderMessageContent(msg)}
+                          {msg.edited && (
+                            <span className="text-xs opacity-70 ml-2">(edited)</span>
+                          )}
+                        </div>
+                      )}
                       
                       {/* Quick Reactions on Hover */}
                       <div className={`absolute ${isOwn ? 'left-0' : 'right-0'} -bottom-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-white dark:bg-gray-800 rounded-full shadow-lg border dark:border-gray-700 px-2 py-1`}>
@@ -477,6 +596,14 @@ const ChatMessageView: React.FC = () => {
           >
             <IconImage className="w-5 h-5" />
           </button>
+          <button
+            type="button"
+            onClick={() => setShowTimeOffRequest(true)}
+            className="p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            aria-label="Request time off"
+          >
+            <IconCalendar className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
@@ -541,6 +668,13 @@ const ChatMessageView: React.FC = () => {
         <ExportChat
           conversation={activeConversation}
           onClose={() => setShowExport(false)}
+        />
+      )}
+      
+      {showTimeOffRequest && (
+        <TimeOffRequest
+          onClose={() => setShowTimeOffRequest(false)}
+          onSubmit={handleTimeOffRequest}
         />
       )}
     </div>
