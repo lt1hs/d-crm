@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { IconSearch, IconHelpCircle, IconCalendar, IconCommand, IconChevronDown, IconSettings, IconLogOut } from '../Icons';
 import { getRoleLabel } from '../../utils/permissionHelpers';
-import NotificationCenter from '../NotificationCenter';
+import NotificationCenterNew from '../notifications/NotificationCenterNew';
 
 type WorkPage = 'dashboard' | 'kanban' | 'tasks' | 'projects' | 'time' | 'chat' | 'settings';
 
@@ -53,7 +53,7 @@ const WorkHeader: React.FC<WorkHeaderProps> = ({ onNavigate, currentPage }) => {
         {/* Right Section */}
         <div className="flex items-center gap-2 ml-6">
           {/* Notification Center */}
-          <NotificationCenter />
+          <NotificationCenterNew />
 
           {/* Help Button */}
           <button 

@@ -9,7 +9,7 @@ import {
   IconMagazine, IconArticle, IconGraduationCap, IconFileText, IconBarChart,
   IconQuote, IconHandshake, IconMenu, IconInfo, IconChevronLeft,
   IconSun, IconMoon, IconUsers, IconClipboardList, IconCalendar, IconMessageCircle,
-  IconCheckSquare
+  IconCheckSquare, IconBell
 } from './Icons';
 
 interface NavItemProps {
@@ -73,7 +73,7 @@ const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, active, isCollapse
 
 
 interface SidebarProps {
-    onNavigate: (page: 'dashboard' | 'menu' | 'slider' | 'books' | 'news' | 'activities' | 'magazine' | 'articles' | 'courses' | 'publications' | 'infographics' | 'videos' | 'testimonials' | 'users' | 'logs' | 'chat' | 'calendar') => void;
+    onNavigate: (page: 'dashboard' | 'menu' | 'slider' | 'books' | 'news' | 'activities' | 'magazine' | 'articles' | 'courses' | 'publications' | 'infographics' | 'videos' | 'testimonials' | 'users' | 'logs' | 'chat' | 'calendar' | 'notification-test') => void;
     currentPage: string;
 }
 
@@ -128,6 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, currentPage }) => {
             items: [
                 { key: 'sidebar.users', icon: IconUsers, page: 'users' as const, permission: 'users' },
                 { key: 'sidebar.logs', icon: IconClipboardList, page: 'logs' as const, permission: 'logs' },
+                { key: '🧪 Test Notifications', icon: IconBell, page: 'notification-test' as const, permission: 'users' },
             ]
         }
     ];

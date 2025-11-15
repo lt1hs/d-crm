@@ -153,7 +153,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const hasPermission = (resource: string, action: 'create' | 'read' | 'update' | 'delete'): boolean => {
     if (!currentUser) return false;
     
-    if (currentUser.role === 'super_admin') return true;
+    // Admin and super_admin have all permissions
+    if (currentUser.role === 'super_admin' || currentUser.role === 'admin') return true;
+    
+    // Boss has most permissions except user management
+    if (currentUser.role === 'boss') {
+      if (resource === 'users' || resource === 'logs') return false;
+      return true;
+    }
+    
+    // Editor and Author have content permissions
+    if (currentUser.role === 'editor' || currentUser.role === 'author') {
+      const contentResources = ['menu', 'slider', 'books', 'news', 'activities', 'magazine', 'articles', 'courses', 'publications', 'infographics', 'videos', 'testimonials'];
+      return contentResources.includes(resource);
+    }
     
     if (currentUser.permissions) {
       const permission = currentUser.permissions.find(p => p.resource === resource);

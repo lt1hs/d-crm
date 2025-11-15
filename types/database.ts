@@ -497,6 +497,203 @@ export interface Database {
           created_at?: string
         }
       }
+      notification_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          push_enabled: boolean
+          email_enabled: boolean
+          browser_enabled: boolean
+          sound_enabled: boolean
+          task_assigned: boolean
+          task_completed: boolean
+          task_commented: boolean
+          task_due_soon: boolean
+          task_overdue: boolean
+          mention_in_chat: boolean
+          mention_in_comment: boolean
+          project_updates: boolean
+          project_deadline: boolean
+          chat_messages: boolean
+          direct_messages: boolean
+          system_updates: boolean
+          quiet_hours_enabled: boolean
+          quiet_hours_start: string
+          quiet_hours_end: string
+          daily_digest_enabled: boolean
+          daily_digest_time: string
+          weekly_digest_enabled: boolean
+          weekly_digest_day: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          push_enabled?: boolean
+          email_enabled?: boolean
+          browser_enabled?: boolean
+          sound_enabled?: boolean
+          task_assigned?: boolean
+          task_completed?: boolean
+          task_commented?: boolean
+          task_due_soon?: boolean
+          task_overdue?: boolean
+          mention_in_chat?: boolean
+          mention_in_comment?: boolean
+          project_updates?: boolean
+          project_deadline?: boolean
+          chat_messages?: boolean
+          direct_messages?: boolean
+          system_updates?: boolean
+          quiet_hours_enabled?: boolean
+          quiet_hours_start?: string
+          quiet_hours_end?: string
+          daily_digest_enabled?: boolean
+          daily_digest_time?: string
+          weekly_digest_enabled?: boolean
+          weekly_digest_day?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          push_enabled?: boolean
+          email_enabled?: boolean
+          browser_enabled?: boolean
+          sound_enabled?: boolean
+          task_assigned?: boolean
+          task_completed?: boolean
+          task_commented?: boolean
+          task_due_soon?: boolean
+          task_overdue?: boolean
+          mention_in_chat?: boolean
+          mention_in_comment?: boolean
+          project_updates?: boolean
+          project_deadline?: boolean
+          chat_messages?: boolean
+          direct_messages?: boolean
+          system_updates?: boolean
+          quiet_hours_enabled?: boolean
+          quiet_hours_start?: string
+          quiet_hours_end?: string
+          daily_digest_enabled?: boolean
+          daily_digest_time?: string
+          weekly_digest_enabled?: boolean
+          weekly_digest_day?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      notification_groups: {
+        Row: {
+          id: string
+          user_id: string
+          group_key: string
+          title: string
+          count: number
+          last_notification_id: string | null
+          read: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          group_key: string
+          title: string
+          count?: number
+          last_notification_id?: string | null
+          read?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          group_key?: string
+          title?: string
+          count?: number
+          last_notification_id?: string | null
+          read?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      scheduled_notifications: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          message: string
+          type: string
+          action_url: string | null
+          metadata: Json
+          scheduled_for: string
+          sent: boolean
+          sent_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          message: string
+          type: string
+          action_url?: string | null
+          metadata?: Json
+          scheduled_for: string
+          sent?: boolean
+          sent_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          message?: string
+          type?: string
+          action_url?: string | null
+          metadata?: Json
+          scheduled_for?: string
+          sent?: boolean
+          sent_at?: string | null
+          created_at?: string
+        }
+      }
+      notification_delivery_log: {
+        Row: {
+          id: string
+          notification_id: string | null
+          user_id: string
+          channel: 'push' | 'email' | 'browser' | 'sms'
+          status: 'pending' | 'sent' | 'failed' | 'skipped'
+          error_message: string | null
+          delivered_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          notification_id?: string | null
+          user_id: string
+          channel: 'push' | 'email' | 'browser' | 'sms'
+          status: 'pending' | 'sent' | 'failed' | 'skipped'
+          error_message?: string | null
+          delivered_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          notification_id?: string | null
+          user_id?: string
+          channel?: 'push' | 'email' | 'browser' | 'sms'
+          status?: 'pending' | 'sent' | 'failed' | 'skipped'
+          error_message?: string | null
+          delivered_at?: string | null
+          created_at?: string
+        }
+      }
       events: {
         Row: {
           id: string

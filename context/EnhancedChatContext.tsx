@@ -3,6 +3,7 @@ import { ChatConversation, ChatMessage, ChatUser, ChatChannel, ChatGroup, ChatFi
 import { useAuth } from './AuthContext';
 import { chatApi, uploadFile as uploadToStorage, usersApi } from '../utils/api';
 import { supabase } from '../config/supabase';
+import { useChatNotifications } from '../hooks/useChatNotifications';
 
 interface EnhancedChatContextType {
   conversations: ChatConversation[];
@@ -63,6 +64,9 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
   const [files, setFiles] = useState<ChatFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'compact' | 'fullpage'>('compact');
+
+  // Enable chat notifications
+  useChatNotifications();
 
   useEffect(() => {
     if (currentUser) {
@@ -282,16 +286,46 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
         fileData?.size
       );
 
-      // Immediately reload messages for the active conversation
+      // Optimistically add message to local state
       if (activeConversation?.id === conversationId) {
-        console.log('Message sent, reloading messages...');
-        const messages = await loadConversationMessages(conversationId);
+        const optimisticMessage: ChatMessage = {
+          id: `temp-${Date.now()}`, // Temporary ID
+          senderId: currentUser.id,
+          senderName: currentUser.fullName,
+          senderAvatar: currentUser.avatar || '/imgs/default-avatar.png',
+          content,
+          timestamp: new Date().toISOString(),
+          read: false,
+          type: messageType,
+          fileUrl: fileData?.url,
+          fileName: fileData?.name,
+          fileSize: fileData?.size,
+          edited: false,
+          reactions: []
+        };
+
         setActiveConversation(prev => prev ? {
           ...prev,
-          messages,
+          messages: [...prev.messages, optimisticMessage],
           lastMessage: content,
           lastMessageTime: new Date().toISOString()
         } : null);
+
+        // Reload messages from database after a short delay to get the real message
+        setTimeout(async () => {
+          try {
+            console.log('Reloading messages from database...');
+            const messages = await loadConversationMessages(conversationId);
+            setActiveConversation(prev => prev ? {
+              ...prev,
+              messages,
+              lastMessage: content,
+              lastMessageTime: new Date().toISOString()
+            } : null);
+          } catch (error) {
+            console.error('Failed to reload messages:', error);
+          }
+        }, 1000); // Wait 1 second for the message to be saved
       }
     } catch (error) {
       console.error('Failed to send message:', error);

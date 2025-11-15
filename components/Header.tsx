@@ -4,7 +4,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../context/AuthContext';
 import { IconSearch, IconHelpCircle, IconCalendar, IconCommand, IconLanguage, IconChevronDown, IconUsers, IconSettings, IconLogOut, IconClipboardList } from './Icons';
 import { getRoleLabel } from '../utils/permissionHelpers';
-import NotificationCenter from './NotificationCenter';
+import NotificationCenterNew from './notifications/NotificationCenterNew';
 
 interface HeaderProps {
     onNavigate?: (page: 'dashboard' | 'menu' | 'slider' | 'books' | 'news' | 'activities' | 'magazine' | 'articles' | 'courses' | 'publications' | 'infographics' | 'videos' | 'testimonials' | 'users' | 'logs' | 'settings') => void;
@@ -71,7 +71,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
                     </div>
 
                     {/* Notification Center */}
-                    <NotificationCenter />
+                    <NotificationCenterNew />
 
                     {/* Help Button */}
                     <button 

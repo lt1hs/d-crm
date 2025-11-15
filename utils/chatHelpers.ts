@@ -1,5 +1,9 @@
 export const formatDistanceToNow = (dateString: string): string => {
+  if (!dateString) return 'just now';
+  
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'just now';
+  
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 

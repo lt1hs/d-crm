@@ -23,8 +23,9 @@ import UserSettings from './components/admin/UserSettings';
 import CalendarManagement from './components/CalendarManagement';
 import ChatPanel from './components/chat/ChatPanel';
 import ChatManagement from './components/chat/ChatManagement';
+import NotificationSystemTest from './components/admin/NotificationSystemTest';
 
-type Page = 'dashboard' | 'menu' | 'slider' | 'books' | 'news' | 'activities' | 'magazine' | 'articles' | 'courses' | 'publications' | 'infographics' | 'videos' | 'testimonials' | 'users' | 'logs' | 'settings' | 'calendar' | 'chat';
+type Page = 'dashboard' | 'menu' | 'slider' | 'books' | 'news' | 'activities' | 'magazine' | 'articles' | 'courses' | 'publications' | 'infographics' | 'videos' | 'testimonials' | 'users' | 'logs' | 'settings' | 'calendar' | 'chat' | 'notification-test';
 
 const AppContent: React.FC = () => {
   const { currentUser, loading } = useAuth();
@@ -88,6 +89,8 @@ const AppContent: React.FC = () => {
         return <CalendarManagement />;
       case 'chat':
         return <ChatManagement />;
+      case 'notification-test':
+        return <NotificationSystemTest />;
       case 'dashboard':
       default:
         return <Dashboard />;
