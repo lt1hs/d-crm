@@ -24,17 +24,21 @@ const NotificationCenterNew: React.FC = () => {
   const [showPreferences, setShowPreferences] = useState(false);
   const [lastNotificationCount, setLastNotificationCount] = useState(0);
 
-  // Load notifications when opening the center
+  // Debug: Log when notifications change
   useEffect(() => {
-    if (isOpen && currentUser?.id) {
-      refreshNotifications();
+    console.log('🔔 NotificationCenter notifications updated:', notifications.length, 'total');
+    notifications.forEach(n => console.log('  -', n.id, n.title, n.read ? '(read)' : '(unread)'));
+  }, [notifications]);
 
+  // Request notification permission when opening the center
+  useEffect(() => {
+    if (isOpen) {
       // Request notification permission
       if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
       }
     }
-  }, [isOpen, currentUser?.id, refreshNotifications]);
+  }, [isOpen]);
 
   // Show browser notification for new notifications
   useEffect(() => {
@@ -90,6 +94,28 @@ const NotificationCenterNew: React.FC = () => {
   const filteredNotifications = notifications
     .filter(n => filter === 'all' || !n.read)
     .filter(n => typeFilter === 'all' || n.type === typeFilter);
+
+  console.log('📊 NotificationCenter state:', {
+    total: notifications.length,
+    unread: notifications.filter(n => !n.read).length,
+    filtered: filteredNotifications.length,
+    filter,
+    typeFilter,
+    allNotifications: notifications.map(n => ({ id: n.id, title: n.title, read: n.read, type: n.type }))
+  });
+
+  // Temporary: Show all notifications for debugging
+  const displayNotifications = notifications; // Temporarily show all
+
+  // Debug: Log notifications when they change
+  if (filteredNotifications.length > 0) {
+    console.log('📋 Filtered notifications:', filteredNotifications.map(n => ({
+      id: n.id,
+      title: n.title,
+      read: n.read,
+      type: n.type
+    })));
+  }
 
   // Get unique notification types
   const notificationTypes = Array.from(new Set(notifications.map(n => n.type)));
@@ -152,7 +178,10 @@ const NotificationCenterNew: React.FC = () => {
                  <div className="flex gap-1">
                    <button
                      type="button"
-                     onClick={refreshNotifications}
+                     onClick={() => {
+                       console.log('🔄 Header refresh button clicked');
+                       refreshNotifications();
+                     }}
                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                      aria-label="Refresh"
                      title="Refresh notifications"
@@ -170,29 +199,39 @@ const NotificationCenterNew: React.FC = () => {
                  </div>
                </div>
 
-               {/* Test Button */}
-               <div className="mb-2">
-                 <button
-                   type="button"
-                   onClick={async () => {
-                     try {
-                       console.log('Testing notification creation...');
-                       await notificationsApi.createNotification({
-                         user_id: currentUser!.id,
-                         title: 'Test Notification',
-                         message: 'This is a test notification created at ' + new Date().toLocaleTimeString(),
-                         type: 'info'
-                       });
-                       console.log('Test notification created');
-                     } catch (error) {
-                       console.error('Failed to create test notification:', error);
-                     }
-                   }}
-                   className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                 >
-                   Test Notification
-                 </button>
-               </div>
+                {/* Test Buttons */}
+                <div className="mb-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        console.log('Testing notification creation...');
+                        await notificationsApi.createNotification({
+                          user_id: currentUser!.id,
+                          title: 'Test Notification',
+                          message: 'This is a test notification created at ' + new Date().toLocaleTimeString(),
+                          type: 'info'
+                        });
+                        console.log('Test notification created');
+                      } catch (error) {
+                        console.error('Failed to create test notification:', error);
+                      }
+                    }}
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                  >
+                    Create Test Notification
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      console.log('🔄 Manual refresh clicked');
+                      refreshNotifications();
+                    }}
+                    className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                  >
+                    Refresh
+                  </button>
+                </div>
 
                {/* Filter Tabs */}
                <div className="flex gap-2 mb-2">
@@ -205,7 +244,7 @@ const NotificationCenterNew: React.FC = () => {
                       : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
                 >
-                  All ({notifications.length})
+                   All ({displayNotifications.length})
                 </button>
                 <button
                   type="button"
@@ -303,7 +342,7 @@ const NotificationCenterNew: React.FC = () => {
                 </div>
               ) : (
                 <div className="divide-y dark:divide-gray-700">
-                  {filteredNotifications.map(notification => (
+                  {displayNotifications.map(notification => (
                     <div
                       key={notification.id}
                       className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-l-4 ${getColors(notification.type)} ${

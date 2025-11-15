@@ -114,6 +114,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
 
     console.log('🔔 Setting up notification realtime subscription for user:', currentUser.id);
+    // Temporarily disabled to debug
+    return;
 
     const channel = supabase
       .channel(`user-notifications-${currentUser.id}`)
@@ -144,6 +146,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           setNotifications(prev => [newNotification, ...prev]);
         }
       )
+      // Temporarily disabled UPDATE handler to debug
+      /*
       .on(
         'postgres_changes',
         {
@@ -155,6 +159,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         (payload) => {
           console.log('🔔 Notification updated via realtime:', payload.new);
           const updatedNotification = payload.new as any;
+          console.log('📖 Realtime marking notification as read:', updatedNotification.id, updatedNotification.read);
           setNotifications(prev =>
             prev.map(n =>
               n.id === updatedNotification.id
@@ -164,6 +169,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
           );
         }
       )
+      */
       .on(
         'postgres_changes',
         {
@@ -214,12 +220,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
 
   const markAsRead = useCallback((id: string) => {
+    console.log('📖 Marking notification as read:', id);
     setNotifications(prev =>
       prev.map(n => n.id === id ? { ...n, read: true } : n)
     );
   }, []);
 
   const markAllAsRead = useCallback(() => {
+    console.log('📖 Marking ALL notifications as read');
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   }, []);
 
@@ -232,12 +240,15 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
 
   const deleteNotification = useCallback(async (id: string) => {
+    console.log('🗑️ Deleting notification:', id);
     try {
       await notificationsApi.deleteNotification(id);
+      console.log('✅ Notification deleted from database');
       removeNotification(id);
     } catch (error) {
-      console.error('Failed to delete notification:', error);
+      console.error('❌ Failed to delete notification from database:', error);
       // Still remove from local state as fallback
+      console.log('🔄 Removing from local state as fallback');
       removeNotification(id);
     }
   }, [removeNotification]);
@@ -249,8 +260,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const refreshNotifications = useCallback(async () => {
     if (!currentUser?.id) return;
 
+    console.log('🔄 Refreshing notifications from database...');
     try {
       const dbNotifications = await notificationsApi.getNotifications(currentUser.id, 50);
+      console.log('📥 Loaded', dbNotifications.length, 'notifications from database');
+
       const formattedNotifications: Notification[] = dbNotifications.map((n: any) => ({
         id: n.id,
         type: n.type,
@@ -265,8 +279,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       }));
 
       setNotifications(formattedNotifications);
+      console.log('✅ Notifications refreshed successfully');
     } catch (error) {
-      console.error('Failed to refresh notifications:', error);
+      console.error('❌ Failed to refresh notifications:', error);
     }
   }, [currentUser?.id]);
 

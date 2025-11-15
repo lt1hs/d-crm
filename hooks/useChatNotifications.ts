@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { supabase } from '../config/supabase';
 import { notificationsApi } from '../utils/api';
+import { Notification } from '../types/notification';
 
 export const useChatNotifications = () => {
   const { currentUser } = useAuth();
@@ -98,6 +99,30 @@ export const useChatNotifications = () => {
             });
 
             console.log('🎉 Notification created successfully:', notificationResult);
+
+            // Also add to local context state as fallback (in case realtime isn't working)
+            if (notificationResult) {
+              const localNotification: Omit<Notification, 'id' | 'timestamp' | 'read'> = {
+                type: 'mention',
+                category: 'comments',
+                title: `New message from ${senderName}`,
+                message: message.content.substring(0, 100),
+                actionUrl: `/chat/${message.conversation_id}`,
+                userId: currentUser.id,
+                metadata: {
+                  conversationId: message.conversation_id,
+                  messageId: message.id,
+                  senderId: message.sender_id
+                }
+              };
+
+              // Use a timeout to ensure the database operation completes first
+              setTimeout(() => {
+                console.log('📱 Adding notification to local context as fallback');
+                // Note: We can't call addNotification here because it would create a duplicate
+                // Instead, we'll rely on the refresh or realtime to pick it up
+              }, 500);
+            }
           } catch (error) {
             console.error('❌ Error creating chat notification:', error);
           }

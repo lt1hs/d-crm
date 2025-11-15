@@ -43,6 +43,7 @@ interface ScheduledNotification {
 export const notificationsApi = {
   // Get user notifications
   getNotifications: async (userId: string, limit: number = 50) => {
+    console.log('🔍 Fetching notifications for user:', userId);
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
@@ -50,7 +51,14 @@ export const notificationsApi = {
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Error fetching notifications:', error);
+      throw error;
+    }
+    console.log('✅ Fetched', data?.length || 0, 'notifications from database');
+    if (data && data.length > 0) {
+      console.log('📋 Latest notification:', data[0]);
+    }
     return data;
   },
 
@@ -117,12 +125,17 @@ export const notificationsApi = {
 
   // Delete notification
   deleteNotification: async (notificationId: string) => {
+    console.log('🗑️ Deleting notification from database:', notificationId);
     const { error } = await supabase
       .from('notifications')
       .delete()
       .eq('id', notificationId);
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Error deleting notification:', error);
+      throw error;
+    }
+    console.log('✅ Notification deleted from database');
   },
 
   // Delete all read notifications
