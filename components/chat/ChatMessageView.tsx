@@ -582,45 +582,57 @@ const ChatMessageView: React.FC = () => {
       {/* Typing Indicator - Removed fake implementation */}
 
       {/* Toolbar */}
-      <div className="px-4 py-2 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex-shrink-0">
-        <div className="flex items-center gap-2">
+      <div className="px-4 py-2 border-t border-gray-200/50 dark:border-gray-700/50 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm flex-shrink-0">
+        <div className="flex items-center gap-0.5">
           <button
             type="button"
             onClick={() => setShowSearch(true)}
-            className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="group relative p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50/80 dark:hover:bg-blue-900/30 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
             aria-label="Search messages"
           >
-            <IconSearch className="w-5 h-5" />
+            <IconSearch className="w-4 h-4" />
+            <span className="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-gray-900 dark:bg-gray-700 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Search
+            </span>
           </button>
           <button
             type="button"
             onClick={() => setShowStarred(true)}
-            className="p-2 text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="group relative p-2 text-gray-500 dark:text-gray-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-50/80 dark:hover:bg-amber-900/30 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
             aria-label="Starred messages"
           >
-            <IconStar className="w-5 h-5" />
+            <IconStar className="w-4 h-4" />
+            <span className="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-gray-900 dark:bg-gray-700 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Starred
+            </span>
           </button>
           <button
             type="button"
             onClick={() => setShowMediaGallery(true)}
-            className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="group relative p-2 text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50/80 dark:hover:bg-purple-900/30 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
             aria-label="Media gallery"
           >
-            <IconImage className="w-5 h-5" />
+            <IconImage className="w-4 h-4" />
+            <span className="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-gray-900 dark:bg-gray-700 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Media
+            </span>
           </button>
           <button
             type="button"
             onClick={() => setShowTimeOffRequest(true)}
-            className="p-2 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            className="group relative p-2 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50/80 dark:hover:bg-green-900/30 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95"
             aria-label="Request time off"
           >
-            <IconCalendar className="w-5 h-5" />
+            <IconCalendar className="w-4 h-4" />
+            <span className="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-gray-900 dark:bg-gray-700 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+              Time Off
+            </span>
           </button>
         </div>
       </div>
 
       {/* Enhanced Input */}
-      <div className="p-4 bg-gray-50 dark:bg-gray-900 flex-shrink-0">
+      <div className="px-4 py-3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm flex-shrink-0">
         <input
           type="file"
           ref={fileInputRef}
@@ -634,7 +646,7 @@ const ChatMessageView: React.FC = () => {
           onSend={handleEnhancedSend}
           onFileClick={() => fileInputRef.current?.click()}
           onVoiceClick={() => setShowVoiceRecorder(true)}
-          placeholder="Type a message... (@mention users)"
+          placeholder="Type a message..."
           maxLength={5000}
         />
       </div>
