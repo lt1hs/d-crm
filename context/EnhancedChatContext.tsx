@@ -19,6 +19,7 @@ interface EnhancedChatContextType {
   sendMessage: (conversationId: string, content: string, type?: 'text' | 'image' | 'file', fileData?: any) => Promise<void>;
   markAsRead: (conversationId: string) => Promise<void>;
   startDirectChat: (userId: string) => Promise<void>;
+  openPersonalChat: () => Promise<void>;
   createChannel: (name: string, description: string, type: 'public' | 'private') => Promise<void>;
   createGroup: (name: string, participantIds: string[], description?: string) => Promise<void>;
   joinChannel: (channelId: string) => Promise<void>;
@@ -35,7 +36,7 @@ interface EnhancedChatContextType {
   uploadFile: (conversationId: string, file: File) => Promise<void>;
   getConversationFiles: (conversationId: string) => ChatFile[];
   getAllFiles: () => ChatFile[];
-  searchMessages: (query: string) => ChatMessage[];
+  searchMessages: (query: string) => Promise<ChatMessage[]>;
 }
 
 const EnhancedChatContext = createContext<EnhancedChatContextType | undefined>(undefined);
@@ -66,7 +67,8 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
   useEffect(() => {
     if (currentUser) {
       loadData();
-      subscribeToMessages();
+      const cleanup = subscribeToMessages();
+      return cleanup;
     }
   }, [currentUser]);
 
@@ -83,6 +85,7 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
       const mappedConversations: ChatConversation[] = conversationsData.map((c: any) => {
         const conv = c.conversation;
         const isDirect = conv.type === 'direct';
+        const isPersonal = conv.type === 'personal';
         const otherParticipant = isDirect 
           ? conv.participants?.find((p: any) => p.user.id !== currentUser.id)?.user
           : null;
@@ -90,12 +93,12 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
         return {
           id: conv.id,
           type: conv.type,
-          name: conv.name,
+          name: isPersonal ? '📝 Personal Notes' : conv.name,
           description: conv.description,
-          participantId: otherParticipant?.id,
-          participantName: otherParticipant?.full_name,
-          participantAvatar: otherParticipant?.avatar_url,
-          participantStatus: otherParticipant?.status,
+          participantId: isPersonal ? currentUser.id : otherParticipant?.id,
+          participantName: isPersonal ? 'You' : otherParticipant?.full_name,
+          participantAvatar: isPersonal ? currentUser.avatar : otherParticipant?.avatar_url,
+          participantStatus: isPersonal ? 'online' : otherParticipant?.status,
           participants: conv.participants?.map((p: any) => p.user.id) || [],
           admins: conv.participants?.filter((p: any) => p.role === 'admin').map((p: any) => p.user.id) || [],
           lastMessage: conv.last_message?.[0]?.content || '',
@@ -157,11 +160,21 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
     }
   };
 
+  // Debounce timer for conversation list updates
+  let updateConversationsTimer: NodeJS.Timeout | null = null;
+
   const subscribeToMessages = () => {
     if (!currentUser) return;
 
-    const subscription = supabase
-      .channel('new-messages')
+    console.log('🔔 Setting up real-time message subscription');
+
+    const channel = supabase
+      .channel('messages-realtime', {
+        config: {
+          broadcast: { self: false }, // Don't receive own messages via broadcast
+          presence: { key: currentUser.id }
+        }
+      })
       .on(
         'postgres_changes',
         {
@@ -170,26 +183,86 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
           table: 'messages'
         },
         async (payload) => {
-          const newMessage = payload.new;
+          const newMessage = payload.new as any;
+          console.log('📨 New message:', newMessage.id.substring(0, 8));
           
-          // Update active conversation if it matches
-          if (activeConversation?.id === newMessage.conversation_id) {
-            const messages = await loadConversationMessages(newMessage.conversation_id);
-            setActiveConversation(prev => prev ? {
+          // Check if message is for active conversation
+          setActiveConversation(prev => {
+            if (!prev || prev.id !== newMessage.conversation_id) {
+              console.log('ℹ️ Message for different conversation');
+              return prev;
+            }
+
+            console.log('✅ Message for active conversation');
+            
+            // Optimistically add the message immediately
+            const optimisticMessage = {
+              id: newMessage.id,
+              senderId: newMessage.sender_id,
+              senderName: newMessage.sender_id === currentUser.id ? currentUser.fullName : prev.participantName || 'User',
+              senderAvatar: newMessage.sender_id === currentUser.id ? currentUser.avatar : prev.participantAvatar || '/imgs/default-avatar.png',
+              content: newMessage.content,
+              timestamp: newMessage.created_at,
+              read: false,
+              type: newMessage.type || 'text',
+              fileUrl: newMessage.file_url,
+              fileName: newMessage.file_name,
+              fileSize: newMessage.file_size,
+              edited: false,
+              reactions: []
+            };
+
+            // Check if message already exists (avoid duplicates)
+            const messageExists = prev.messages.some(m => m.id === newMessage.id);
+            if (messageExists) {
+              console.log('⚠️ Message already exists, skipping');
+              return prev;
+            }
+
+            // Add message to the list
+            return {
               ...prev,
-              messages,
+              messages: [...prev.messages, optimisticMessage],
               lastMessage: newMessage.content,
               lastMessageTime: newMessage.created_at
-            } : null);
-          }
+            };
+          });
           
-          // Update conversations list
-          await loadData();
+          // Debounce conversation list updates (avoid excessive reloads)
+          if (updateConversationsTimer) {
+            clearTimeout(updateConversationsTimer);
+          }
+          updateConversationsTimer = setTimeout(() => {
+            console.log('🔄 Updating conversations list');
+            loadData();
+          }, 1000); // Wait 1 second before updating
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time connected');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Channel error:', err);
+          // Auto-reconnect after 5 seconds
+          setTimeout(() => {
+            console.log('🔄 Attempting to reconnect...');
+            channel.subscribe();
+          }, 5000);
+        } else if (status === 'TIMED_OUT') {
+          console.error('⏱️ Connection timed out, reconnecting...');
+          channel.subscribe();
+        } else if (status === 'CLOSED') {
+          console.warn('⚠️ Connection closed');
+        }
+      });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('👋 Cleaning up real-time subscription');
+      if (updateConversationsTimer) {
+        clearTimeout(updateConversationsTimer);
+      }
+      channel.unsubscribe();
+    };
   };
 
   const unreadCount = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
@@ -209,7 +282,17 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
         fileData?.size
       );
 
-      // Messages will be updated via real-time subscription
+      // Immediately reload messages for the active conversation
+      if (activeConversation?.id === conversationId) {
+        console.log('Message sent, reloading messages...');
+        const messages = await loadConversationMessages(conversationId);
+        setActiveConversation(prev => prev ? {
+          ...prev,
+          messages,
+          lastMessage: content,
+          lastMessageTime: new Date().toISOString()
+        } : null);
+      }
     } catch (error) {
       console.error('Failed to send message:', error);
       throw error;
@@ -247,6 +330,60 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
       }
     } catch (error) {
       console.error('Failed to start direct chat:', error);
+    }
+  };
+
+  const openPersonalChat = async () => {
+    if (!currentUser) return;
+
+    try {
+      console.log('Opening personal chat for user:', currentUser.id);
+      
+      // First check if personal chat already exists in loaded conversations
+      const existingPersonal = conversations.find(c => c.type === 'personal');
+      if (existingPersonal) {
+        console.log('Found existing personal chat:', existingPersonal.id);
+        const messages = await loadConversationMessages(existingPersonal.id);
+        setActiveConversation({ ...existingPersonal, messages });
+        return;
+      }
+
+      // Create new personal chat
+      console.log('Creating new personal chat...');
+      const conversationId = await chatApi.createPersonalChat(currentUser.id);
+      console.log('Personal chat created:', conversationId);
+      
+      // Reload conversations to get the new one
+      await loadData();
+      
+      // Wait a bit for state to update, then load the conversation directly
+      console.log('Loading messages for personal chat...');
+      const messages = await loadConversationMessages(conversationId);
+      
+      // Create a temporary conversation object to display immediately
+      const tempConversation: ChatConversation = {
+        id: conversationId,
+        type: 'personal',
+        name: '📝 Personal Notes',
+        participantId: currentUser.id,
+        participantName: 'You',
+        participantAvatar: currentUser.avatar,
+        participantStatus: 'online',
+        participants: [currentUser.id],
+        admins: [currentUser.id],
+        lastMessage: '',
+        lastMessageTime: new Date().toISOString(),
+        unreadCount: 0,
+        pinned: false,
+        archived: false,
+        messages
+      };
+      
+      setActiveConversation(tempConversation);
+      console.log('Personal chat opened successfully!');
+    } catch (error) {
+      console.error('Failed to open personal chat:', error);
+      alert('Failed to open personal chat. Please check the console for details.');
     }
   };
 
@@ -415,16 +552,33 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
     return files;
   };
 
-  const searchMessages = (query: string) => {
-    const results: ChatMessage[] = [];
-    conversations.forEach(conv => {
-      conv.messages.forEach(msg => {
-        if (msg.content.toLowerCase().includes(query.toLowerCase())) {
-          results.push(msg);
-        }
-      });
-    });
-    return results;
+  const searchMessages = async (query: string): Promise<ChatMessage[]> => {
+    if (!activeConversation || !query.trim()) return [];
+    
+    try {
+      // Search in the database for the active conversation
+      const results = await chatApi.searchMessages(activeConversation.id, query);
+      
+      // Map to ChatMessage format
+      return results.map((m: any) => ({
+        id: m.id,
+        senderId: m.sender_id,
+        senderName: m.sender.full_name,
+        senderAvatar: m.sender.avatar_url || '/imgs/default-avatar.png',
+        content: m.content,
+        timestamp: m.created_at,
+        read: m.read,
+        type: m.type,
+        fileUrl: m.file_url,
+        fileName: m.file_name,
+        fileSize: m.file_size,
+        edited: m.edited,
+        reactions: []
+      }));
+    } catch (error) {
+      console.error('Failed to search messages:', error);
+      return [];
+    }
   };
 
   // Load messages when active conversation changes
@@ -452,6 +606,7 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
       sendMessage,
       markAsRead,
       startDirectChat,
+      openPersonalChat,
       createChannel,
       createGroup,
       joinChannel,

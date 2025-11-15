@@ -11,6 +11,7 @@ const ChatConversationList: React.FC = () => {
     setActiveConversation,
     users,
     startDirectChat,
+    openPersonalChat,
     markAsRead
   } = useEnhancedChat();
   const { currentUser } = useAuth();
@@ -84,9 +85,21 @@ const ChatConversationList: React.FC = () => {
         ))}
       </div>
 
-      {/* New Chat Button */}
-      <div className="p-3 border-b dark:border-gray-700">
+      {/* Personal Chat & New Chat Buttons */}
+      <div className="p-3 border-b dark:border-gray-700 space-y-2">
+        {/* Personal Chat Button */}
         <button
+          type="button"
+          onClick={() => openPersonalChat()}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg transition-all shadow-sm hover:shadow-md"
+        >
+          <span className="text-lg">📝</span>
+          <span className="text-sm font-medium">Personal Notes</span>
+        </button>
+        
+        {/* New Direct Chat Button */}
+        <button
+          type="button"
           onClick={() => setShowNewChat(!showNewChat)}
           className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
         >
@@ -149,7 +162,11 @@ const ChatConversationList: React.FC = () => {
               >
                 <div className="flex items-start gap-3">
                   <div className="relative flex-shrink-0">
-                    {conv.type === 'direct' ? (
+                    {conv.type === 'personal' ? (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-600 to-purple-700 flex items-center justify-center text-white text-xl">
+                        📝
+                      </div>
+                    ) : conv.type === 'direct' ? (
                       <>
                         <img
                           src={conv.participantAvatar || '/imgs/default-avatar.png'}

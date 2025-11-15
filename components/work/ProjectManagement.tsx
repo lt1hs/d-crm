@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { useWork } from '../../context/WorkContext';
-import { useAuth } from '../../context/AuthContext';
-import { Plus, Folder, Users, Calendar, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Folder, Users, Calendar, MoreVertical, Edit2, Trash2, TrendingUp } from 'lucide-react';
 import { Project } from '../../types/work';
 import { ProjectForm } from './ProjectForm';
 
 export const ProjectManagement: React.FC = () => {
   const { projects, tasks, deleteProject } = useWork();
-  const { currentUser } = useAuth();
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | undefined>();
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
   
   // Get users from localStorage
   const users = JSON.parse(localStorage.getItem('users') || '[]').map((u: any) => ({
@@ -30,12 +29,14 @@ export const ProjectManagement: React.FC = () => {
   const handleEdit = (project: Project) => {
     setEditingProject(project);
     setShowForm(true);
+    setActiveMenu(null);
   };
 
   const handleDelete = (project: Project) => {
     if (confirm(`Delete project "${project.name}" and all its tasks?`)) {
       deleteProject(project.id);
     }
+    setActiveMenu(null);
   };
 
   const handleCloseForm = () => {
@@ -43,16 +44,24 @@ export const ProjectManagement: React.FC = () => {
     setEditingProject(undefined);
   };
 
+  const activeProjects = projects.filter(p => p.status === 'active').length;
+  const completedProjects = projects.filter(p => p.status === 'completed').length;
+  const totalTasks = tasks.length;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fadeIn">
+      {/* Sleeker Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Projects</h2>
-          <p className="text-gray-600 mt-1">Manage your work projects</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Projects</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+            {activeProjects} active · {completedProjects} completed · {totalTasks} total tasks
+          </p>
         </div>
         <button
+          type="button"
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-2 text-sm rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
           New Project
@@ -60,124 +69,156 @@ export const ProjectManagement: React.FC = () => {
       </div>
 
       {projects.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-          <Folder className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No projects yet</h3>
-          <p className="text-gray-600 mb-4">Create your first project to organize your tasks</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-10 text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <Folder className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">No projects yet</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Create your first project to organize your tasks</p>
           <button
+            type="button"
             onClick={() => setShowForm(true)}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-blue-600 text-white px-4 py-2 text-sm rounded-lg hover:bg-blue-700 transition-colors"
           >
             Create Project
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map(project => {
             const stats = getProjectStats(project.id);
-            const teamMembers = users.filter(u => project.teamMembers.includes(u.id));
+            const teamMembers = users.filter((u: any) => project.teamMembers.includes(u.id));
 
             return (
               <div
                 key={project.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
+                className="group bg-white dark:bg-gray-800 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md transition-all"
               >
+                {/* Header */}
                 <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 ${project.color} rounded-lg flex items-center justify-center text-white text-xl`}>
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div 
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg flex-shrink-0"
+                      style={{ backgroundColor: project.color }}
+                    >
                       {project.icon}
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{project.name}</h3>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        project.status === 'active' ? 'bg-green-100 text-green-700' :
-                        project.status === 'on-hold' ? 'bg-yellow-100 text-yellow-700' :
-                        project.status === 'completed' ? 'bg-blue-100 text-blue-700' :
-                        'bg-gray-100 text-gray-700'
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{project.name}</h3>
+                      <span className={`inline-block text-xs px-2 py-0.5 rounded-md mt-1 ${
+                        project.status === 'active' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                        project.status === 'on-hold' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
+                        project.status === 'completed' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+                        'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                       }`}>
                         {project.status}
                       </span>
                     </div>
                   </div>
-                  <div className="relative group">
-                    <button className="p-1 text-gray-400 hover:text-gray-600">
-                      <MoreVertical className="w-5 h-5" />
+                  <div className="relative">
+                    <button 
+                      type="button"
+                      onClick={() => setActiveMenu(activeMenu === project.id ? null : project.id)}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors opacity-0 group-hover:opacity-100"
+                      aria-label="Project options"
+                    >
+                      <MoreVertical className="w-4 h-4" />
                     </button>
-                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 hidden group-hover:block z-10">
-                      <button
-                        onClick={() => handleEdit(project)}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(project)}
-                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{project.description}</p>
-
-                {/* Progress */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-gray-600">Progress</span>
-                    <span className="font-medium text-gray-900">
-                      {stats.completed}/{stats.total} tasks
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all"
-                      style={{ width: `${stats.progress}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Team Members */}
-                <div className="flex items-center gap-2 mb-4">
-                  <Users className="w-4 h-4 text-gray-400" />
-                  <div className="flex -space-x-2">
-                    {teamMembers.slice(0, 3).map(member => (
-                      <div
-                        key={member.id}
-                        className="w-8 h-8 bg-blue-600 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-medium"
-                        title={member.name}
-                      >
-                        {member.name.charAt(0)}
-                      </div>
-                    ))}
-                    {teamMembers.length > 3 && (
-                      <div className="w-8 h-8 bg-gray-400 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-medium">
-                        +{teamMembers.length - 3}
+                    {activeMenu === project.id && (
+                      <div className="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-10">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(project)}
+                          className="w-full px-3 py-2 text-left text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(project)}
+                          className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Delete
+                        </button>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Dates */}
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Calendar className="w-4 h-4" />
-                  <span>
-                    {new Date(project.startDate).toLocaleDateString()}
-                    {project.endDate && ` - ${new Date(project.endDate).toLocaleDateString()}`}
-                  </span>
+                {/* Description */}
+                {project.description && (
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">{project.description}</p>
+                )}
+
+                {/* Progress */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between text-xs mb-2">
+                    <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400">
+                      <TrendingUp className="w-3 h-3" />
+                      <span>Progress</span>
+                    </div>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">
+                      {stats.completed}/{stats.total}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-100 dark:bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{ width: `${stats.progress}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700/50">
+                  {/* Team Members */}
+                  <div className="flex items-center gap-2">
+                    <Users className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                    <div className="flex -space-x-1.5">
+                      {teamMembers.slice(0, 3).map((member: any) => (
+                        <div
+                          key={member.id}
+                          className="w-6 h-6 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center text-white text-xs font-medium"
+                          title={member.name}
+                        >
+                          {member.name.charAt(0)}
+                        </div>
+                      ))}
+                      {teamMembers.length > 3 && (
+                        <div className="w-6 h-6 bg-gray-400 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center text-white text-xs font-medium">
+                          +{teamMembers.length - 3}
+                        </div>
+                      )}
+                      {teamMembers.length === 0 && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">No members</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Date */}
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>
+                      {new Date(project.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Tags */}
                 {project.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-3">
+                  <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/50">
                     {project.tags.slice(0, 3).map(tag => (
-                      <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                      <span key={tag} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs">
                         {tag}
                       </span>
                     ))}
+                    {project.tags.length > 3 && (
+                      <span className="px-2 py-0.5 text-gray-400 dark:text-gray-500 text-xs">
+                        +{project.tags.length - 3}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>

@@ -24,7 +24,7 @@ export interface ChatReaction {
 
 export interface ChatConversation {
   id: string;
-  type: 'direct' | 'group' | 'channel';
+  type: 'direct' | 'group' | 'channel' | 'personal';
   participantId?: string;
   participantName?: string;
   participantAvatar?: string;

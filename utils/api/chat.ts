@@ -131,19 +131,25 @@ export const chatApi = {
   // Create direct conversation
   createDirectConversation: async (userId1: string, userId2: string) => {
     // Check if conversation already exists
-    const { data: existing } = await supabase
+    // First get all conversation IDs for user2
+    const { data: user2Convs } = await supabase
       .from('conversation_participants')
       .select('conversation_id')
-      .eq('user_id', userId1)
-      .in('conversation_id', 
-        supabase
-          .from('conversation_participants')
-          .select('conversation_id')
-          .eq('user_id', userId2)
-      );
+      .eq('user_id', userId2);
 
-    if (existing && existing.length > 0) {
-      return existing[0].conversation_id;
+    if (user2Convs && user2Convs.length > 0) {
+      const user2ConvIds = user2Convs.map(c => c.conversation_id);
+      
+      // Then check if user1 is in any of those conversations
+      const { data: existing } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', userId1)
+        .in('conversation_id', user2ConvIds);
+
+      if (existing && existing.length > 0) {
+        return existing[0].conversation_id;
+      }
     }
 
     // Create new conversation
@@ -169,6 +175,114 @@ export const chatApi = {
     if (partError) throw partError;
 
     return conversation.id;
+  },
+
+  // Create or get personal chat (self-conversation)
+  createPersonalChat: async (userId: string) => {
+    console.log('createPersonalChat called for user:', userId);
+    
+    // Check if we have a valid session
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Current session:', session ? 'EXISTS' : 'NULL');
+    console.log('Session user ID:', session?.user?.id);
+    console.log('Matches userId?', session?.user?.id === userId);
+    
+    if (!session) {
+      throw new Error('No active session - user not authenticated');
+    }
+    
+    // Check if personal chat already exists
+    const { data: existingConversations, error: searchError } = await supabase
+      .from('conversations')
+      .select(`
+        id,
+        participants:conversation_participants(user_id)
+      `)
+      .eq('type', 'personal')
+      .eq('created_by', userId);
+
+    if (searchError) {
+      console.error('Error searching for existing personal chat:', searchError);
+      throw searchError;
+    }
+
+    console.log('Existing personal conversations:', existingConversations);
+
+    // Find a conversation where the user is the only participant
+    const personalChat = existingConversations?.find(conv => {
+      const participants = conv.participants as any[];
+      return participants.length === 1 && participants[0].user_id === userId;
+    });
+
+    if (personalChat) {
+      console.log('Found existing personal chat:', personalChat.id);
+      return personalChat.id;
+    }
+
+    // Create new personal chat
+    console.log('Creating new personal chat...');
+    const { data: conversation, error: convError } = await supabase
+      .from('conversations')
+      .insert({
+        name: 'Personal Notes',
+        type: 'personal',
+        created_by: userId
+      })
+      .select()
+      .single();
+
+    if (convError) {
+      console.error('Error creating personal chat conversation:', convError);
+      console.error('Error details:', JSON.stringify(convError, null, 2));
+      throw convError;
+    }
+
+    console.log('Personal chat conversation created:', conversation);
+
+    // Add user as the only participant
+    const { error: partError } = await supabase
+      .from('conversation_participants')
+      .insert({
+        conversation_id: conversation.id,
+        user_id: userId,
+        role: 'admin'
+      });
+
+    if (partError) {
+      console.error('Error adding participant to personal chat:', partError);
+      throw partError;
+    }
+
+    console.log('Personal chat fully created with ID:', conversation.id);
+    return conversation.id;
+  },
+
+  // Get personal chat
+  getPersonalChat: async (userId: string) => {
+    const { data: conversations } = await supabase
+      .from('conversation_participants')
+      .select(`
+        conversation:conversations(
+          *,
+          participants:conversation_participants(
+            user:users(id, full_name, avatar_url, status)
+          ),
+          last_message:messages(content, created_at, sender:users(full_name))
+        )
+      `)
+      .eq('user_id', userId);
+
+    if (!conversations) return null;
+
+    // Find personal chat (where user is the only participant)
+    const personalChat = conversations.find(c => {
+      const conv = c.conversation as any;
+      return conv.type === 'personal' && 
+             conv.participants?.length === 1 && 
+             conv.participants[0].user.id === userId;
+    });
+
+    return personalChat?.conversation || null;
   },
 
   // Create group conversation

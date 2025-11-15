@@ -257,13 +257,26 @@ const ChatMessageView: React.FC = () => {
       <div className="flex items-center justify-between p-4 border-b dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => setActiveConversation(null)}
             className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
             aria-label="Back to conversations"
           >
             <IconChevronLeft className="w-5 h-5" />
           </button>
-          {activeConversation.type === 'direct' ? (
+          {activeConversation.type === 'personal' ? (
+            <>
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-purple-700 flex items-center justify-center text-white text-xl">
+                📝
+              </div>
+              <div>
+                <h3 className="font-semibold">Personal Notes</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Save messages, files & reminders
+                </p>
+              </div>
+            </>
+          ) : activeConversation.type === 'direct' ? (
             <>
               <img
                 src={activeConversation.participantAvatar || '/imgs/default-avatar.png'}
@@ -368,8 +381,19 @@ const ChatMessageView: React.FC = () => {
         style={{ height: 0 }}
       >
         {activeConversation.messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
-            <p className="text-sm">No messages yet. Start the conversation!</p>
+          <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 p-8">
+            {activeConversation.type === 'personal' ? (
+              <>
+                <div className="text-6xl mb-4">📝</div>
+                <p className="text-lg font-medium mb-2">Your Personal Space</p>
+                <p className="text-sm text-center max-w-md">
+                  Save notes, reminders, files, and anything you want to keep handy. 
+                  This is your private space - only you can see these messages.
+                </p>
+              </>
+            ) : (
+              <p className="text-sm">No messages yet. Start the conversation!</p>
+            )}
           </div>
         ) : (
           activeConversation.messages.map(msg => {
@@ -555,19 +579,7 @@ const ChatMessageView: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Typing Indicator */}
-      {activeConversation.type === 'direct' && activeConversation.participantStatus === 'online' && Math.random() > 0.7 && (
-        <div className="px-4 py-2 bg-gray-50 dark:bg-gray-900 border-t dark:border-gray-700 flex-shrink-0">
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <span>{activeConversation.participantName} is typing</span>
-            <span className="flex gap-1">
-              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-              <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Typing Indicator - Removed fake implementation */}
 
       {/* Toolbar */}
       <div className="px-4 py-2 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900 flex-shrink-0">

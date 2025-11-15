@@ -9,7 +9,7 @@ interface AdvancedSearchProps {
 }
 
 const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ onClose, onSelectMessage }) => {
-  const { conversations, users } = useEnhancedChat();
+  const { conversations, users, activeConversation, searchMessages } = useEnhancedChat();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [filters, setFilters] = useState({
@@ -27,37 +27,75 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({ onClose, onSelectMessag
       return;
     }
 
-    const searchResults: any[] = [];
-    conversations.forEach(conv => {
-      conv.messages.forEach(msg => {
-        const matchesQuery = msg.content.toLowerCase().includes(query.toLowerCase());
-        const matchesSender = !filters.sender || msg.senderId === filters.sender;
-        const matchesConversation = !filters.conversationId || conv.id === filters.conversationId;
+    const performSearch = async () => {
+      // If we have an active conversation, search in the database
+      if (activeConversation) {
+        const dbResults = await searchMessages(query);
         
-        let matchesDate = true;
-        if (filters.dateFrom) {
-          matchesDate = matchesDate && new Date(msg.timestamp) >= new Date(filters.dateFrom);
-        }
-        if (filters.dateTo) {
-          matchesDate = matchesDate && new Date(msg.timestamp) <= new Date(filters.dateTo);
+        // Apply filters
+        const filteredResults = dbResults.filter(msg => {
+          const matchesSender = !filters.sender || msg.senderId === filters.sender;
+          
+          let matchesDate = true;
+          if (filters.dateFrom) {
+            matchesDate = matchesDate && new Date(msg.timestamp) >= new Date(filters.dateFrom);
+          }
+          if (filters.dateTo) {
+            matchesDate = matchesDate && new Date(msg.timestamp) <= new Date(filters.dateTo);
+          }
+
+          const matchesFileType = !filters.fileType || 
+            (msg.type === 'file' && msg.fileName?.toLowerCase().includes(filters.fileType.toLowerCase()));
+
+          return matchesSender && matchesDate && matchesFileType;
+        });
+
+        setResults(filteredResults.map(msg => ({
+          ...msg,
+          conversationId: activeConversation.id,
+          conversationName: activeConversation.name || activeConversation.participantName || 'Unknown'
+        })));
+        return;
+      }
+
+      // Fallback: search through loaded messages
+      const searchResults: any[] = [];
+      conversations.forEach(conv => {
+        if (filters.conversationId && conv.id !== filters.conversationId) {
+          return;
         }
 
-        const matchesFileType = !filters.fileType || 
-          (msg.type === 'file' && msg.fileName?.toLowerCase().includes(filters.fileType.toLowerCase()));
+        conv.messages.forEach(msg => {
+          const matchesQuery = msg.content.toLowerCase().includes(query.toLowerCase());
+          const matchesSender = !filters.sender || msg.senderId === filters.sender;
+          
+          let matchesDate = true;
+          if (filters.dateFrom) {
+            matchesDate = matchesDate && new Date(msg.timestamp) >= new Date(filters.dateFrom);
+          }
+          if (filters.dateTo) {
+            matchesDate = matchesDate && new Date(msg.timestamp) <= new Date(filters.dateTo);
+          }
 
-        if (matchesQuery && matchesSender && matchesConversation && matchesDate && matchesFileType) {
-          searchResults.push({
-            ...msg,
-            conversationId: conv.id,
-            conversationName: conv.name || conv.participantName || 'Unknown'
-          });
-        }
+          const matchesFileType = !filters.fileType || 
+            (msg.type === 'file' && msg.fileName?.toLowerCase().includes(filters.fileType.toLowerCase()));
+
+          if (matchesQuery && matchesSender && matchesDate && matchesFileType) {
+            searchResults.push({
+              ...msg,
+              conversationId: conv.id,
+              conversationName: conv.name || conv.participantName || 'Unknown'
+            });
+          }
+        });
       });
-    });
 
-    setResults(searchResults.sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    ));
+      setResults(searchResults.sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      ));
+    };
+
+    performSearch();
   }, [query, filters, conversations]);
 
   const highlightText = (text: string, highlight: string) => {

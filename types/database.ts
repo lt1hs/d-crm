@@ -338,7 +338,7 @@ export interface Database {
         Row: {
           id: string
           name: string | null
-          type: 'direct' | 'group' | 'channel'
+          type: 'direct' | 'group' | 'channel' | 'personal'
           avatar_url: string | null
           pinned: boolean
           archived: boolean
@@ -349,7 +349,7 @@ export interface Database {
         Insert: {
           id?: string
           name?: string | null
-          type: 'direct' | 'group' | 'channel'
+          type: 'direct' | 'group' | 'channel' | 'personal'
           avatar_url?: string | null
           pinned?: boolean
           archived?: boolean
@@ -360,7 +360,7 @@ export interface Database {
         Update: {
           id?: string
           name?: string | null
-          type?: 'direct' | 'group' | 'channel'
+          type?: 'direct' | 'group' | 'channel' | 'personal'
           avatar_url?: string | null
           pinned?: boolean
           archived?: boolean

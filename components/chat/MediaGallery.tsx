@@ -9,15 +9,54 @@ interface MediaGalleryProps {
 }
 
 const MediaGallery: React.FC<MediaGalleryProps> = ({ conversationId, onClose }) => {
-  const { getConversationFiles } = useEnhancedChat();
+  const { activeConversation } = useEnhancedChat();
   const [files, setFiles] = useState<any[]>([]);
   const [filter, setFilter] = useState<'all' | 'images' | 'videos' | 'documents'>('all');
   const [selectedFile, setSelectedFile] = useState<any | null>(null);
 
   useEffect(() => {
-    const conversationFiles = getConversationFiles(conversationId);
-    setFiles(conversationFiles);
-  }, [conversationId]);
+    // Extract files from messages
+    if (activeConversation && activeConversation.id === conversationId) {
+      const getFileType = (fileName: string): string => {
+        if (!fileName) return 'application/octet-stream';
+        const ext = fileName.split('.').pop()?.toLowerCase();
+        
+        // Image types
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext || '')) {
+          return `image/${ext}`;
+        }
+        // Video types
+        if (['mp4', 'webm', 'ogg', 'mov', 'avi'].includes(ext || '')) {
+          return `video/${ext}`;
+        }
+        // Document types
+        if (['pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext || '')) {
+          return `application/${ext}`;
+        }
+        return 'application/octet-stream';
+      };
+
+      const fileMessages = activeConversation.messages
+        .filter(msg => msg.type === 'file' && msg.fileUrl)
+        .map(msg => ({
+          id: msg.id,
+          name: msg.fileName || 'Unknown file',
+          url: msg.fileUrl,
+          type: getFileType(msg.fileName || ''),
+          size: msg.fileSize || 0,
+          uploadedAt: msg.timestamp,
+          uploadedBy: msg.senderId,
+          uploadedByName: msg.senderName,
+          conversationId: conversationId,
+          messageId: msg.id
+        }));
+      
+      console.log('Files found in messages:', fileMessages);
+      setFiles(fileMessages);
+    } else {
+      console.log('No active conversation or conversation ID mismatch');
+    }
+  }, [conversationId, activeConversation]);
 
   const filteredFiles = files.filter(file => {
     if (filter === 'all') return true;
