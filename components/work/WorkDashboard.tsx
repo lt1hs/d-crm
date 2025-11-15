@@ -3,7 +3,7 @@ import { useWork } from '../../context/WorkContext';
 import { useAuth } from '../../context/AuthContext';
 import { 
   CheckCircle, Clock, AlertCircle, TrendingUp, 
-  Folder, Users, BarChart3, Calendar 
+  Folder, Calendar, ArrowUpRight, Zap, Target, Activity
 } from 'lucide-react';
 import { isTaskOverdue } from '../../utils/workHelpers';
 
@@ -21,190 +21,319 @@ export const WorkDashboard: React.FC = () => {
     return dueDate >= today && dueDate <= weekFromNow;
   });
 
+  const completedTasks = myTasks.filter(t => t.status === 'completed').length;
+
   const statCards = [
     {
       title: 'My Tasks',
       value: myTasks.length,
-      subtitle: `${myTasks.filter(t => t.status === 'completed').length} completed`,
+      subtitle: `${completedTasks} completed`,
       icon: CheckCircle,
-      color: 'bg-blue-500',
-      trend: '+12%'
+      gradient: 'from-blue-500 to-blue-600',
+      bgGradient: 'from-blue-50 to-blue-100',
+      darkBgGradient: 'dark:from-blue-900/20 dark:to-blue-800/20',
+      iconColor: 'text-blue-600 dark:text-blue-400',
+      trend: '+12%',
+      trendUp: true
     },
     {
       title: 'In Progress',
       value: stats.inProgressTasks,
       subtitle: 'Active tasks',
       icon: Clock,
-      color: 'bg-purple-500',
-      trend: '+5%'
+      gradient: 'from-purple-500 to-purple-600',
+      bgGradient: 'from-purple-50 to-purple-100',
+      darkBgGradient: 'dark:from-purple-900/20 dark:to-purple-800/20',
+      iconColor: 'text-purple-600 dark:text-purple-400',
+      trend: '+5%',
+      trendUp: true
     },
     {
       title: 'Overdue',
       value: myOverdueTasks.length,
       subtitle: 'Need attention',
       icon: AlertCircle,
-      color: 'bg-red-500',
-      trend: '-3%'
+      gradient: 'from-red-500 to-red-600',
+      bgGradient: 'from-red-50 to-red-100',
+      darkBgGradient: 'dark:from-red-900/20 dark:to-red-800/20',
+      iconColor: 'text-red-600 dark:text-red-400',
+      trend: '-3%',
+      trendUp: false
     },
     {
       title: 'Completion Rate',
       value: `${Math.round(stats.completionRate)}%`,
       subtitle: 'This month',
       icon: TrendingUp,
-      color: 'bg-green-500',
-      trend: '+8%'
+      gradient: 'from-green-500 to-green-600',
+      bgGradient: 'from-green-50 to-green-100',
+      darkBgGradient: 'dark:from-green-900/20 dark:to-green-800/20',
+      iconColor: 'text-green-600 dark:text-green-400',
+      trend: '+8%',
+      trendUp: true
+    }
+  ];
+
+  const quickStats = [
+    {
+      title: 'Active Projects',
+      value: stats.activeProjects,
+      subtitle: `of ${stats.totalProjects} total`,
+      icon: Folder,
+      iconBg: 'bg-indigo-100 dark:bg-indigo-900/30',
+      iconColor: 'text-indigo-600 dark:text-indigo-400'
+    },
+    {
+      title: 'Hours Logged',
+      value: stats.totalHoursLogged.toFixed(1),
+      subtitle: 'This month',
+      icon: Activity,
+      iconBg: 'bg-cyan-100 dark:bg-cyan-900/30',
+      iconColor: 'text-cyan-600 dark:text-cyan-400'
+    },
+    {
+      title: 'Due This Week',
+      value: myTasksDueThisWeek.length,
+      subtitle: 'Tasks to complete',
+      icon: Calendar,
+      iconBg: 'bg-amber-100 dark:bg-amber-900/30',
+      iconColor: 'text-amber-600 dark:text-amber-400'
     }
   ];
 
   const recentTasks = tasks.slice(0, 5);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Work Dashboard</h1>
-        <p className="text-gray-600 mt-1">Welcome back, {currentUser?.name}</p>
+    <div className="space-y-8 animate-fadeIn">
+      {/* Header with Greeting */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            Welcome back, {currentUser?.fullName || 'User'}! 👋
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
+            <Zap className="w-4 h-4 text-yellow-500" />
+            Here's what's happening with your work today
+          </p>
+        </div>
+        <button className="hidden lg:flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all duration-200 hover:scale-105 hover:shadow-lg">
+          <Target className="w-4 h-4" />
+          Quick Actions
+        </button>
       </div>
 
-      {/* Stats Grid */}
+      {/* Main Stats Grid - Enhanced Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => (
-          <div key={index} className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
-                <p className="text-sm text-gray-500 mt-1">{stat.subtitle}</p>
+          <div 
+            key={index} 
+            className="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:-translate-y-1"
+          >
+            {/* Gradient Background */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} ${stat.darkBgGradient} opacity-50 dark:opacity-30`} />
+            
+            {/* Content */}
+            <div className="relative p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    {stat.title}
+                  </p>
+                  <p className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+                    {stat.value}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {stat.subtitle}
+                  </p>
+                </div>
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <stat.icon className="w-6 h-6 text-white" />
+                </div>
               </div>
-              <div className={`${stat.color} p-3 rounded-lg`}>
-                <stat.icon className="w-6 h-6 text-white" />
+              
+              {/* Trend Indicator */}
+              <div className="flex items-center gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold ${
+                  stat.trendUp 
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                }`}>
+                  <ArrowUpRight className={`w-3 h-3 ${!stat.trendUp ? 'rotate-90' : ''}`} />
+                  {stat.trend}
+                </div>
+                <span className="text-xs text-gray-500 dark:text-gray-400">vs last month</span>
               </div>
-            </div>
-            <div className="mt-4 flex items-center text-sm">
-              <span className="text-green-600 font-medium">{stat.trend}</span>
-              <span className="text-gray-500 ml-2">vs last month</span>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Quick Stats */}
+      {/* Quick Stats Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <div className="flex items-center gap-3 mb-4">
-            <Folder className="w-5 h-5 text-gray-600" />
-            <h3 className="font-semibold text-gray-900">Active Projects</h3>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{stats.activeProjects}</p>
-          <p className="text-sm text-gray-500 mt-1">of {stats.totalProjects} total</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <div className="flex items-center gap-3 mb-4">
-            <Clock className="w-5 h-5 text-gray-600" />
-            <h3 className="font-semibold text-gray-900">Hours Logged</h3>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{stats.totalHoursLogged.toFixed(1)}</p>
-          <p className="text-sm text-gray-500 mt-1">This month</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-          <div className="flex items-center gap-3 mb-4">
-            <Calendar className="w-5 h-5 text-gray-600" />
-            <h3 className="font-semibold text-gray-900">Due This Week</h3>
-          </div>
-          <p className="text-3xl font-bold text-gray-900">{myTasksDueThisWeek.length}</p>
-          <p className="text-sm text-gray-500 mt-1">Tasks to complete</p>
-        </div>
-      </div>
-
-      {/* Priority Distribution */}
-      <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-        <h3 className="font-semibold text-gray-900 mb-4">Tasks by Priority</h3>
-        <div className="space-y-3">
-          {Object.entries(stats.tasksByPriority).map(([priority, count]) => {
-            const total = stats.totalTasks;
-            const percentage = total > 0 ? (count / total) * 100 : 0;
-            const colors: Record<string, string> = {
-              urgent: 'bg-red-500',
-              high: 'bg-orange-500',
-              medium: 'bg-yellow-500',
-              low: 'bg-gray-400'
-            };
-            
-            return (
-              <div key={priority}>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="capitalize text-gray-700">{priority}</span>
-                  <span className="text-gray-600">{count} tasks</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className={`${colors[priority]} h-2 rounded-full transition-all`}
-                    style={{ width: `${percentage}%` }}
-                  />
-                </div>
+        {quickStats.map((stat, index) => (
+          <div 
+            key={index}
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-lg border border-gray-200 dark:border-gray-700 p-6 transition-all duration-300 hover:-translate-y-0.5"
+          >
+            <div className="flex items-center gap-4">
+              <div className={`${stat.iconBg} p-4 rounded-xl`}>
+                <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
               </div>
-            );
-          })}
-        </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  {stat.title}
+                </p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+                  {stat.value}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {stat.subtitle}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Recent Tasks */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">Recent Tasks</h3>
-        </div>
-        <div className="divide-y divide-gray-200">
-          {recentTasks.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              No tasks yet. Create your first task to get started!
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Priority Distribution - Takes 1 column */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-all duration-300">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Tasks by Priority
+            </h3>
+            <div className="px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400">
+              {stats.totalTasks} total
             </div>
-          ) : (
-            recentTasks.map(task => {
-              const project = projects.find(p => p.id === task.projectId);
+          </div>
+          <div className="space-y-4">
+            {Object.entries(stats.tasksByPriority).map(([priority, count]) => {
+              const total = stats.totalTasks;
+              const percentage = total > 0 ? (count / total) * 100 : 0;
+              const colors: Record<string, { bg: string; text: string; bar: string }> = {
+                urgent: { 
+                  bg: 'bg-red-100 dark:bg-red-900/30', 
+                  text: 'text-red-700 dark:text-red-400',
+                  bar: 'bg-gradient-to-r from-red-500 to-red-600'
+                },
+                high: { 
+                  bg: 'bg-orange-100 dark:bg-orange-900/30', 
+                  text: 'text-orange-700 dark:text-orange-400',
+                  bar: 'bg-gradient-to-r from-orange-500 to-orange-600'
+                },
+                medium: { 
+                  bg: 'bg-yellow-100 dark:bg-yellow-900/30', 
+                  text: 'text-yellow-700 dark:text-yellow-400',
+                  bar: 'bg-gradient-to-r from-yellow-500 to-yellow-600'
+                },
+                low: { 
+                  bg: 'bg-gray-100 dark:bg-gray-700', 
+                  text: 'text-gray-700 dark:text-gray-400',
+                  bar: 'bg-gradient-to-r from-gray-400 to-gray-500'
+                }
+              };
+              
               return (
-                <div key={task.id} className="p-4 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium text-gray-900">{task.title}</h4>
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          task.priority === 'urgent' ? 'bg-red-100 text-red-700' :
-                          task.priority === 'high' ? 'bg-orange-100 text-orange-700' :
-                          task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-gray-100 text-gray-600'
-                        }`}>
-                          {task.priority}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 mt-2 text-sm text-gray-600">
-                        {project && (
-                          <span className="flex items-center gap-1">
-                            <Folder className="w-4 h-4" />
-                            {project.name}
-                          </span>
-                        )}
-                        {task.dueDate && (
-                          <span className={isTaskOverdue(task) ? 'text-red-600' : ''}>
-                            Due: {new Date(task.dueDate).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
+                <div key={priority} className="group">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold capitalize ${colors[priority].bg} ${colors[priority].text}`}>
+                        {priority}
+                      </span>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      task.status === 'completed' ? 'bg-green-100 text-green-700' :
-                      task.status === 'in-progress' ? 'bg-blue-100 text-blue-700' :
-                      task.status === 'blocked' ? 'bg-red-100 text-red-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      {task.status.replace('-', ' ')}
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {count}
                     </span>
+                  </div>
+                  <div className="relative w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                    <div 
+                      className={`${colors[priority].bar} h-2.5 rounded-full transition-all duration-500 ease-out shadow-sm`}
+                      style={{ width: `${percentage}%` }}
+                    />
                   </div>
                 </div>
               );
-            })
-          )}
+            })}
+          </div>
+        </div>
+
+        {/* Recent Tasks - Takes 2 columns */}
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-all duration-300">
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Recent Tasks
+              </h3>
+              <button className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+                View all →
+              </button>
+            </div>
+          </div>
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            {recentTasks.length === 0 ? (
+              <div className="p-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                </div>
+                <p className="text-gray-500 dark:text-gray-400 font-medium mb-2">No tasks yet</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500">Create your first task to get started!</p>
+              </div>
+            ) : (
+              recentTasks.map(task => {
+                const project = projects.find(p => p.id === task.projectId);
+                const priorityColors: Record<string, string> = {
+                  urgent: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
+                  high: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800',
+                  medium: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
+                  low: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600'
+                };
+                const statusColors: Record<string, string> = {
+                  completed: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+                  'in-progress': 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+                  blocked: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+                  todo: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                };
+                
+                return (
+                  <div 
+                    key={task.id} 
+                    className="p-5 hover:bg-gray-50 dark:hover:bg-gray-750 transition-all duration-200 cursor-pointer group"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+                            {task.title}
+                          </h4>
+                          <span className={`px-2.5 py-0.5 rounded-md text-xs font-semibold border flex-shrink-0 ${priorityColors[task.priority]}`}>
+                            {task.priority}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                          {project && (
+                            <span className="flex items-center gap-1.5">
+                              <Folder className="w-4 h-4" />
+                              <span className="truncate">{project.name}</span>
+                            </span>
+                          )}
+                          {task.dueDate && (
+                            <span className={`flex items-center gap-1.5 ${isTaskOverdue(task) ? 'text-red-600 dark:text-red-400 font-medium' : ''}`}>
+                              <Calendar className="w-4 h-4" />
+                              {new Date(task.dueDate).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap ${statusColors[task.status]}`}>
+                        {task.status.replace('-', ' ')}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </div>
     </div>

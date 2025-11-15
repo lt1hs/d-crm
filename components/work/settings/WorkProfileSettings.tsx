@@ -3,7 +3,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { usersApi } from '../../../utils/api/users';
 import { IconUpload, IconSave } from '../../Icons';
 
-const ProfileSettings: React.FC = () => {
+const WorkProfileSettings: React.FC = () => {
   const { currentUser, updateUserProfile, logActivity } = useAuth();
   const [formData, setFormData] = useState({
     fullName: '',
@@ -258,4 +258,4 @@ const ProfileSettings: React.FC = () => {
   );
 };
 
-export default ProfileSettings;
+export default WorkProfileSettings;

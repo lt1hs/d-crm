@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ChatConversation, ChatMessage, ChatUser, ChatChannel, ChatGroup, ChatFile } from '../types/chat';
 import { useAuth } from './AuthContext';
+import { chatApi, uploadFile as uploadToStorage, usersApi } from '../utils/api';
+import { supabase } from '../config/supabase';
 
 interface EnhancedChatContextType {
   conversations: ChatConversation[];
@@ -10,25 +12,26 @@ interface EnhancedChatContextType {
   users: ChatUser[];
   files: ChatFile[];
   unreadCount: number;
+  loading: boolean;
   viewMode: 'compact' | 'fullpage';
   setViewMode: (mode: 'compact' | 'fullpage') => void;
   setActiveConversation: (conversation: ChatConversation | null) => void;
-  sendMessage: (conversationId: string, content: string, type?: 'text' | 'image' | 'file', fileData?: any) => void;
-  markAsRead: (conversationId: string) => void;
-  startDirectChat: (userId: string) => void;
-  createChannel: (name: string, description: string, type: 'public' | 'private') => void;
-  createGroup: (name: string, participantIds: string[], description?: string) => void;
-  joinChannel: (channelId: string) => void;
-  leaveChannel: (channelId: string) => void;
-  addGroupMembers: (groupId: string, userIds: string[]) => void;
-  removeGroupMember: (groupId: string, userId: string) => void;
-  deleteConversation: (conversationId: string) => void;
-  pinConversation: (conversationId: string) => void;
-  muteConversation: (conversationId: string) => void;
-  archiveConversation: (conversationId: string) => void;
-  deleteMessage: (conversationId: string, messageId: string) => void;
-  editMessage: (conversationId: string, messageId: string, newContent: string) => void;
-  addReaction: (conversationId: string, messageId: string, emoji: string) => void;
+  sendMessage: (conversationId: string, content: string, type?: 'text' | 'image' | 'file', fileData?: any) => Promise<void>;
+  markAsRead: (conversationId: string) => Promise<void>;
+  startDirectChat: (userId: string) => Promise<void>;
+  createChannel: (name: string, description: string, type: 'public' | 'private') => Promise<void>;
+  createGroup: (name: string, participantIds: string[], description?: string) => Promise<void>;
+  joinChannel: (channelId: string) => Promise<void>;
+  leaveChannel: (channelId: string) => Promise<void>;
+  addGroupMembers: (groupId: string, userIds: string[]) => Promise<void>;
+  removeGroupMember: (groupId: string, userId: string) => Promise<void>;
+  deleteConversation: (conversationId: string) => Promise<void>;
+  pinConversation: (conversationId: string) => Promise<void>;
+  muteConversation: (conversationId: string) => Promise<void>;
+  archiveConversation: (conversationId: string) => Promise<void>;
+  deleteMessage: (conversationId: string, messageId: string) => Promise<void>;
+  editMessage: (conversationId: string, messageId: string, newContent: string) => Promise<void>;
+  addReaction: (conversationId: string, messageId: string, emoji: string) => Promise<void>;
   uploadFile: (conversationId: string, file: File) => Promise<void>;
   getConversationFiles: (conversationId: string) => ChatFile[];
   getAllFiles: () => ChatFile[];
@@ -57,301 +60,265 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
   const [activeConversation, setActiveConversation] = useState<ChatConversation | null>(null);
   const [users, setUsers] = useState<ChatUser[]>([]);
   const [files, setFiles] = useState<ChatFile[]>([]);
+  const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'compact' | 'fullpage'>('compact');
 
   useEffect(() => {
-    // Load data from localStorage
-    const savedConversations = localStorage.getItem('chatConversations');
-    const savedChannels = localStorage.getItem('chatChannels');
-    const savedGroups = localStorage.getItem('chatGroups');
-    const savedFiles = localStorage.getItem('chatFiles');
-    
-    if (savedConversations) setConversations(JSON.parse(savedConversations));
-    if (savedChannels) setChannels(JSON.parse(savedChannels));
-    if (savedGroups) setGroups(JSON.parse(savedGroups));
-    if (savedFiles) setFiles(JSON.parse(savedFiles));
+    if (currentUser) {
+      loadData();
+      subscribeToMessages();
+    }
+  }, [currentUser]);
 
-    // Load users
-    const savedUsers = localStorage.getItem('users');
-    if (savedUsers) {
-      const allUsers = JSON.parse(savedUsers);
+  const loadData = async () => {
+    if (!currentUser) return;
+
+    try {
+      setLoading(true);
+      
+      // Load conversations
+      const conversationsData = await chatApi.getMyConversations(currentUser.id);
+      
+      // Map Supabase data to local format
+      const mappedConversations: ChatConversation[] = conversationsData.map((c: any) => {
+        const conv = c.conversation;
+        const isDirect = conv.type === 'direct';
+        const otherParticipant = isDirect 
+          ? conv.participants?.find((p: any) => p.user.id !== currentUser.id)?.user
+          : null;
+
+        return {
+          id: conv.id,
+          type: conv.type,
+          name: conv.name,
+          description: conv.description,
+          participantId: otherParticipant?.id,
+          participantName: otherParticipant?.full_name,
+          participantAvatar: otherParticipant?.avatar_url,
+          participantStatus: otherParticipant?.status,
+          participants: conv.participants?.map((p: any) => p.user.id) || [],
+          admins: conv.participants?.filter((p: any) => p.role === 'admin').map((p: any) => p.user.id) || [],
+          lastMessage: conv.last_message?.[0]?.content || '',
+          lastMessageTime: conv.last_message?.[0]?.created_at || conv.created_at,
+          unreadCount: 0, // Calculate based on last_read_at
+          pinned: conv.pinned,
+          archived: conv.archived,
+          messages: []
+        };
+      });
+
+      setConversations(mappedConversations);
+
+      // Load users
+      const allUsers = await usersApi.getAllUsers();
       setUsers(allUsers.map((u: any) => ({
         id: u.id,
-        name: u.name,
-        avatar: u.avatar,
-        status: u.status === 'active' ? 'online' : 'offline',
+        name: u.full_name,
+        avatar: u.avatar_url || '/imgs/default-avatar.png',
+        status: u.status,
         role: u.role
       })));
-    }
-  }, []);
 
-  useEffect(() => {
-    // Save to localStorage
-    if (conversations.length > 0) {
-      localStorage.setItem('chatConversations', JSON.stringify(conversations));
+    } catch (error) {
+      console.error('Failed to load chat data:', error);
+    } finally {
+      setLoading(false);
     }
-    if (channels.length > 0) {
-      localStorage.setItem('chatChannels', JSON.stringify(channels));
+  };
+
+  const loadConversationMessages = async (conversationId: string) => {
+    try {
+      const messages = await chatApi.getMessages(conversationId);
+      
+      const mappedMessages: ChatMessage[] = messages.map((m: any) => ({
+        id: m.id,
+        senderId: m.sender_id,
+        senderName: m.sender.full_name,
+        senderAvatar: m.sender.avatar_url || '/imgs/default-avatar.png',
+        content: m.content,
+        timestamp: m.created_at,
+        read: m.read,
+        type: m.type,
+        fileUrl: m.file_url,
+        fileName: m.file_name,
+        fileSize: m.file_size,
+        edited: m.edited,
+        reactions: m.reactions?.map((r: any) => ({
+          emoji: r.emoji,
+          userId: r.user_id,
+          userName: r.user.full_name
+        })) || []
+      }));
+
+      return mappedMessages;
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+      return [];
     }
-    if (groups.length > 0) {
-      localStorage.setItem('chatGroups', JSON.stringify(groups));
-    }
-    if (files.length > 0) {
-      localStorage.setItem('chatFiles', JSON.stringify(files));
-    }
-  }, [conversations, channels, groups, files]);
+  };
+
+  const subscribeToMessages = () => {
+    if (!currentUser) return;
+
+    const subscription = supabase
+      .channel('new-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+        },
+        async (payload) => {
+          const newMessage = payload.new;
+          
+          // Update active conversation if it matches
+          if (activeConversation?.id === newMessage.conversation_id) {
+            const messages = await loadConversationMessages(newMessage.conversation_id);
+            setActiveConversation(prev => prev ? {
+              ...prev,
+              messages,
+              lastMessage: newMessage.content,
+              lastMessageTime: newMessage.created_at
+            } : null);
+          }
+          
+          // Update conversations list
+          await loadData();
+        }
+      )
+      .subscribe();
+
+    return () => subscription.unsubscribe();
+  };
 
   const unreadCount = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
 
-  const sendMessage = (conversationId: string, content: string, type: 'text' | 'image' | 'file' = 'text', fileData?: any) => {
+  const sendMessage = async (conversationId: string, content: string, type: 'text' | 'image' | 'file' = 'text', fileData?: any) => {
     if (!currentUser) return;
 
-    const message: ChatMessage = {
-      id: Date.now().toString(),
-      senderId: currentUser.id,
-      senderName: currentUser.name,
-      senderAvatar: currentUser.avatar,
-      content,
-      timestamp: new Date().toISOString(),
-      read: false,
-      type,
-      ...(fileData && {
-        fileUrl: fileData.url,
-        fileName: fileData.name,
-        fileSize: fileData.size
-      })
-    };
+    try {
+      const messageType = type === 'image' ? 'file' : type;
+      await chatApi.sendMessage(
+        conversationId,
+        currentUser.id,
+        content,
+        messageType,
+        fileData?.url,
+        fileData?.name,
+        fileData?.size
+      );
 
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === conversationId) {
-        return {
-          ...conv,
-          messages: [...conv.messages, message],
-          lastMessage: type === 'file' ? `📎 ${fileData?.name || 'File'}` : content,
-          lastMessageTime: message.timestamp
-        };
-      }
-      return conv;
-    }));
-
-    if (activeConversation?.id === conversationId) {
-      setActiveConversation(prev => prev ? {
-        ...prev,
-        messages: [...prev.messages, message],
-        lastMessage: type === 'file' ? `📎 ${fileData?.name || 'File'}` : content,
-        lastMessageTime: message.timestamp
-      } : null);
+      // Messages will be updated via real-time subscription
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      throw error;
     }
   };
 
-  const markAsRead = (conversationId: string) => {
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === conversationId) {
-        return {
-          ...conv,
-          unreadCount: 0,
-          messages: conv.messages.map(msg => ({ ...msg, read: true }))
-        };
-      }
-      return conv;
-    }));
-  };
-
-  const startDirectChat = (userId: string) => {
-    const existing = conversations.find(c => c.type === 'direct' && c.participantId === userId);
-    if (existing) {
-      setActiveConversation(existing);
-      return;
-    }
-
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
-
-    const newConversation: ChatConversation = {
-      id: Date.now().toString(),
-      type: 'direct',
-      participantId: user.id,
-      participantName: user.name,
-      participantAvatar: user.avatar,
-      participantStatus: user.status,
-      lastMessage: '',
-      lastMessageTime: new Date().toISOString(),
-      unreadCount: 0,
-      messages: []
-    };
-
-    setConversations(prev => [newConversation, ...prev]);
-    setActiveConversation(newConversation);
-  };
-
-  const createChannel = (name: string, description: string, type: 'public' | 'private') => {
+  const markAsRead = async (conversationId: string) => {
     if (!currentUser) return;
 
-    const channel: ChatChannel = {
-      id: Date.now().toString(),
-      name,
-      description,
-      type,
-      memberCount: 1,
-      createdBy: currentUser.id,
-      createdAt: new Date().toISOString(),
-      admins: [currentUser.id]
-    };
-
-    const conversation: ChatConversation = {
-      id: channel.id,
-      type: 'channel',
-      name: channel.name,
-      description: channel.description,
-      participants: [currentUser.id],
-      admins: [currentUser.id],
-      lastMessage: 'Channel created',
-      lastMessageTime: new Date().toISOString(),
-      unreadCount: 0,
-      messages: []
-    };
-
-    setChannels(prev => [...prev, channel]);
-    setConversations(prev => [conversation, ...prev]);
-    setActiveConversation(conversation);
-  };
-
-  const createGroup = (name: string, participantIds: string[], description?: string) => {
-    if (!currentUser) return;
-
-    const allParticipants = [currentUser.id, ...participantIds];
-    
-    const group: ChatGroup = {
-      id: Date.now().toString(),
-      name,
-      description,
-      participants: allParticipants,
-      admins: [currentUser.id],
-      createdBy: currentUser.id,
-      createdAt: new Date().toISOString()
-    };
-
-    const conversation: ChatConversation = {
-      id: group.id,
-      type: 'group',
-      name: group.name,
-      description: group.description,
-      participants: allParticipants,
-      admins: [currentUser.id],
-      lastMessage: 'Group created',
-      lastMessageTime: new Date().toISOString(),
-      unreadCount: 0,
-      messages: []
-    };
-
-    setGroups(prev => [...prev, group]);
-    setConversations(prev => [conversation, ...prev]);
-    setActiveConversation(conversation);
-  };
-
-  const joinChannel = (channelId: string) => {
-    if (!currentUser) return;
-
-    setChannels(prev => prev.map(ch => {
-      if (ch.id === channelId) {
-        return { ...ch, memberCount: ch.memberCount + 1 };
-      }
-      return ch;
-    }));
-
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === channelId && conv.participants) {
-        return {
-          ...conv,
-          participants: [...conv.participants, currentUser.id]
-        };
-      }
-      return conv;
-    }));
-  };
-
-  const leaveChannel = (channelId: string) => {
-    if (!currentUser) return;
-
-    setChannels(prev => prev.map(ch => {
-      if (ch.id === channelId) {
-        return { ...ch, memberCount: Math.max(0, ch.memberCount - 1) };
-      }
-      return ch;
-    }));
-
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === channelId && conv.participants) {
-        return {
-          ...conv,
-          participants: conv.participants.filter(id => id !== currentUser.id)
-        };
-      }
-      return conv;
-    }));
-  };
-
-  const addGroupMembers = (groupId: string, userIds: string[]) => {
-    setGroups(prev => prev.map(g => {
-      if (g.id === groupId) {
-        return {
-          ...g,
-          participants: [...new Set([...g.participants, ...userIds])]
-        };
-      }
-      return g;
-    }));
-
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === groupId && conv.participants) {
-        return {
-          ...conv,
-          participants: [...new Set([...conv.participants, ...userIds])]
-        };
-      }
-      return conv;
-    }));
-  };
-
-  const removeGroupMember = (groupId: string, userId: string) => {
-    setGroups(prev => prev.map(g => {
-      if (g.id === groupId) {
-        return {
-          ...g,
-          participants: g.participants.filter(id => id !== userId)
-        };
-      }
-      return g;
-    }));
-
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === groupId && conv.participants) {
-        return {
-          ...conv,
-          participants: conv.participants.filter(id => id !== userId)
-        };
-      }
-      return conv;
-    }));
-  };
-
-  const deleteConversation = (conversationId: string) => {
-    setConversations(prev => prev.filter(c => c.id !== conversationId));
-    if (activeConversation?.id === conversationId) {
-      setActiveConversation(null);
+    try {
+      await chatApi.markAsRead(conversationId, currentUser.id);
+      
+      setConversations(prev => prev.map(conv => {
+        if (conv.id === conversationId) {
+          return { ...conv, unreadCount: 0 };
+        }
+        return conv;
+      }));
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
     }
   };
 
-  const pinConversation = (conversationId: string) => {
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === conversationId) {
-        return { ...conv, pinned: !conv.pinned };
+  const startDirectChat = async (userId: string) => {
+    if (!currentUser) return;
+
+    try {
+      const conversationId = await chatApi.createDirectConversation(currentUser.id, userId);
+      await loadData();
+      
+      const conversation = conversations.find(c => c.id === conversationId);
+      if (conversation) {
+        const messages = await loadConversationMessages(conversationId);
+        setActiveConversation({ ...conversation, messages });
       }
-      return conv;
-    }));
+    } catch (error) {
+      console.error('Failed to start direct chat:', error);
+    }
   };
 
-  const muteConversation = (conversationId: string) => {
+  const createChannel = async (name: string, description: string, type: 'public' | 'private') => {
+    if (!currentUser) return;
+
+    try {
+      await chatApi.createGroupConversation(name, currentUser.id, [currentUser.id]);
+      await loadData();
+    } catch (error) {
+      console.error('Failed to create channel:', error);
+    }
+  };
+
+  const createGroup = async (name: string, participantIds: string[], description?: string) => {
+    if (!currentUser) return;
+
+    try {
+      await chatApi.createGroupConversation(name, currentUser.id, participantIds);
+      await loadData();
+    } catch (error) {
+      console.error('Failed to create group:', error);
+    }
+  };
+
+  const joinChannel = async (channelId: string) => {
+    // Implement channel joining logic
+    console.log('Join channel:', channelId);
+  };
+
+  const leaveChannel = async (channelId: string) => {
+    // Implement channel leaving logic
+    console.log('Leave channel:', channelId);
+  };
+
+  const addGroupMembers = async (groupId: string, userIds: string[]) => {
+    // Implement add members logic
+    console.log('Add members:', groupId, userIds);
+  };
+
+  const removeGroupMember = async (groupId: string, userId: string) => {
+    // Implement remove member logic
+    console.log('Remove member:', groupId, userId);
+  };
+
+  const deleteConversation = async (conversationId: string) => {
+    try {
+      // Note: This might need admin permissions
+      setConversations(prev => prev.filter(c => c.id !== conversationId));
+      if (activeConversation?.id === conversationId) {
+        setActiveConversation(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete conversation:', error);
+    }
+  };
+
+  const pinConversation = async (conversationId: string) => {
+    try {
+      const conv = conversations.find(c => c.id === conversationId);
+      if (conv) {
+        await chatApi.togglePin(conversationId, !conv.pinned);
+        setConversations(prev => prev.map(c => 
+          c.id === conversationId ? { ...c, pinned: !c.pinned } : c
+        ));
+      }
+    } catch (error) {
+      console.error('Failed to pin conversation:', error);
+    }
+  };
+
+  const muteConversation = async (conversationId: string) => {
     setConversations(prev => prev.map(conv => {
       if (conv.id === conversationId) {
         return { ...conv, muted: !conv.muted };
@@ -360,121 +327,84 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
     }));
   };
 
-  const archiveConversation = (conversationId: string) => {
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === conversationId) {
-        return { ...conv, archived: !conv.archived };
+  const archiveConversation = async (conversationId: string) => {
+    try {
+      const conv = conversations.find(c => c.id === conversationId);
+      if (conv) {
+        await chatApi.toggleArchive(conversationId, !conv.archived);
+        setConversations(prev => prev.map(c => 
+          c.id === conversationId ? { ...c, archived: !c.archived } : c
+        ));
       }
-      return conv;
-    }));
-  };
-
-  const deleteMessage = (conversationId: string, messageId: string) => {
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === conversationId) {
-        return {
-          ...conv,
-          messages: conv.messages.filter(msg => msg.id !== messageId)
-        };
-      }
-      return conv;
-    }));
-
-    if (activeConversation?.id === conversationId) {
-      setActiveConversation(prev => prev ? {
-        ...prev,
-        messages: prev.messages.filter(msg => msg.id !== messageId)
-      } : null);
+    } catch (error) {
+      console.error('Failed to archive conversation:', error);
     }
   };
 
-  const editMessage = (conversationId: string, messageId: string, newContent: string) => {
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === conversationId) {
-        return {
-          ...conv,
-          messages: conv.messages.map(msg => 
+  const deleteMessage = async (conversationId: string, messageId: string) => {
+    try {
+      await chatApi.deleteMessage(messageId);
+      
+      if (activeConversation?.id === conversationId) {
+        setActiveConversation(prev => prev ? {
+          ...prev,
+          messages: prev.messages.filter(msg => msg.id !== messageId)
+        } : null);
+      }
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+    }
+  };
+
+  const editMessage = async (conversationId: string, messageId: string, newContent: string) => {
+    try {
+      await chatApi.editMessage(messageId, newContent);
+      
+      if (activeConversation?.id === conversationId) {
+        setActiveConversation(prev => prev ? {
+          ...prev,
+          messages: prev.messages.map(msg => 
             msg.id === messageId 
-              ? { ...msg, content: newContent, edited: true, editedAt: new Date().toISOString() }
+              ? { ...msg, content: newContent, edited: true }
               : msg
           )
-        };
+        } : null);
       }
-      return conv;
-    }));
-
-    if (activeConversation?.id === conversationId) {
-      setActiveConversation(prev => prev ? {
-        ...prev,
-        messages: prev.messages.map(msg => 
-          msg.id === messageId 
-            ? { ...msg, content: newContent, edited: true, editedAt: new Date().toISOString() }
-            : msg
-        )
-      } : null);
+    } catch (error) {
+      console.error('Failed to edit message:', error);
     }
   };
 
-  const addReaction = (conversationId: string, messageId: string, emoji: string) => {
+  const addReaction = async (conversationId: string, messageId: string, emoji: string) => {
     if (!currentUser) return;
 
-    setConversations(prev => prev.map(conv => {
-      if (conv.id === conversationId) {
-        return {
-          ...conv,
-          messages: conv.messages.map(msg => {
-            if (msg.id === messageId) {
-              const reactions = msg.reactions || [];
-              const existingReaction = reactions.find(r => r.userId === currentUser.id && r.emoji === emoji);
-              
-              if (existingReaction) {
-                return {
-                  ...msg,
-                  reactions: reactions.filter(r => !(r.userId === currentUser.id && r.emoji === emoji))
-                };
-              } else {
-                return {
-                  ...msg,
-                  reactions: [...reactions, { emoji, userId: currentUser.id, userName: currentUser.name }]
-                };
-              }
-            }
-            return msg;
-          })
-        };
-      }
-      return conv;
-    }));
+    try {
+      await chatApi.addReaction(messageId, currentUser.id, emoji);
+      
+      // Update will come through real-time subscription
+    } catch (error) {
+      console.error('Failed to add reaction:', error);
+    }
   };
 
   const uploadFile = async (conversationId: string, file: File) => {
     if (!currentUser) return;
 
-    // Simulate file upload
-    const fileUrl = URL.createObjectURL(file);
-    
-    const chatFile: ChatFile = {
-      id: Date.now().toString(),
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      url: fileUrl,
-      uploadedBy: currentUser.id,
-      uploadedByName: currentUser.name,
-      uploadedAt: new Date().toISOString(),
-      conversationId,
-      conversationName: conversations.find(c => c.id === conversationId)?.name || 
-                        conversations.find(c => c.id === conversationId)?.participantName || 'Unknown',
-      messageId: Date.now().toString()
-    };
-
-    setFiles(prev => [...prev, chatFile]);
-
-    sendMessage(conversationId, file.name, 'file', {
-      url: fileUrl,
-      name: file.name,
-      size: file.size
-    });
+    try {
+      const path = `${currentUser.id}/${Date.now()}-${file.name}`;
+      const { url } = await uploadToStorage('chat-files', path, file);
+      
+      if (url) {
+        await sendMessage(conversationId, file.name, 'file', {
+          url,
+          name: file.name,
+          size: file.size
+        });
+      }
+    } catch (error) {
+      console.error('Failed to upload file:', error);
+      throw error;
+    }
   };
 
   const getConversationFiles = (conversationId: string) => {
@@ -497,6 +427,15 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
     return results;
   };
 
+  // Load messages when active conversation changes
+  useEffect(() => {
+    if (activeConversation && activeConversation.messages.length === 0) {
+      loadConversationMessages(activeConversation.id).then(messages => {
+        setActiveConversation(prev => prev ? { ...prev, messages } : null);
+      });
+    }
+  }, [activeConversation?.id]);
+
   return (
     <EnhancedChatContext.Provider value={{
       conversations,
@@ -506,6 +445,7 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
       users,
       files,
       unreadCount,
+      loading,
       viewMode,
       setViewMode,
       setActiveConversation,

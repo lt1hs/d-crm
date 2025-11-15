@@ -7,7 +7,7 @@ interface LoginPageProps {
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const { login } = useAuth();
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -18,14 +18,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setLoading(true);
 
     try {
-      const success = await login(username, password);
+      console.log('Attempting login with:', email);
+      const success = await login(email, password);
+      console.log('Login result:', success);
+      
       if (success) {
         onLoginSuccess();
       } else {
-        setError('Invalid username or password');
+        setError('Invalid email or password. Please check your credentials.');
       }
-    } catch (err) {
-      setError('An error occurred during login');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || 'An error occurred during login. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -39,24 +43,24 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             Sign in to your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Default credentials: admin / admin
+            Use your Supabase account credentials
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm space-y-4">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium mb-2">
-                Username
+              <label htmlFor="email" className="block text-sm font-medium mb-2">
+                Email
               </label>
               <input
-                id="username"
-                name="username"
-                type="text"
+                id="email"
+                name="email"
+                type="email"
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800"
-                placeholder="Enter username"
+                placeholder="Enter your email"
               />
             </div>
             <div>
