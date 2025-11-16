@@ -67,7 +67,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
     // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
       days.push(
-        <div key={`empty-${i}`} className="aspect-square p-2 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50" />
+        <div key={`empty-${i}`} className="aspect-square p-1.5 border border-gray-200/30 dark:border-gray-700/30 bg-gray-50/50 dark:bg-gray-800/30" />
       );
     }
     
@@ -83,21 +83,21 @@ const CalendarView: React.FC<CalendarViewProps> = ({
           key={day}
           onClick={() => onDateSelect(date)}
           className={`
-            aspect-square p-2 border border-gray-200 dark:border-gray-700 cursor-pointer
+            aspect-square p-1.5 border border-gray-200/30 dark:border-gray-700/30 cursor-pointer
             hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors
-            ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-2 ring-blue-500' : 'bg-white dark:bg-gray-800'}
-            ${isTodayDate ? 'font-bold' : ''}
+            ${isSelected ? 'bg-blue-100 dark:bg-blue-900/30 ring-1 ring-blue-500' : 'bg-white dark:bg-gray-800'}
+            ${isTodayDate ? 'ring-1 ring-blue-500 font-medium' : ''}
           `}
         >
           <div className="flex flex-col h-full">
             <div className={`
-              text-sm mb-1
-              ${isTodayDate ? 'text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300'}
+              text-xs mb-0.5
+              ${isTodayDate ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'}
             `}>
               {day}
             </div>
             <div className="flex-1 overflow-hidden">
-              {dayEvents.slice(0, 3).map((event, idx) => (
+              {dayEvents.slice(0, 2).map((event, idx) => (
                 <div
                   key={event.id}
                   className={`
@@ -109,9 +109,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
                   {event.title}
                 </div>
               ))}
-              {dayEvents.length > 3 && (
+              {dayEvents.length > 2 && (
                 <div className="text-xs text-gray-500 dark:text-gray-400 px-1">
-                  +{dayEvents.length - 3} more
+                  +{dayEvents.length - 2} more
                 </div>
               )}
             </div>
@@ -124,49 +124,49 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-md border border-gray-200/50 dark:border-gray-700/50">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="p-3 border-b border-gray-200/50 dark:border-gray-700/50">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
             {getMonthName(currentMonth)} {currentYear}
           </h2>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={handleToday}
-              className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              className="px-2.5 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium"
               type="button"
             >
               Today
             </button>
             <button
               onClick={handlePrevMonth}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
               type="button"
               aria-label="Previous month"
             >
-              <IconChevronLeft className="w-5 h-5" />
+              <IconChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={handleNextMonth}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
               type="button"
               aria-label="Next month"
             >
-              <IconChevronRight className="w-5 h-5" />
+              <IconChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       </div>
 
       {/* Calendar Grid */}
-      <div className="p-4">
+      <div className="p-3">
         {/* Day headers */}
-        <div className="grid grid-cols-7 gap-0 mb-2">
+        <div className="grid grid-cols-7 gap-0 mb-1">
           {[0, 1, 2, 3, 4, 5, 6].map(day => (
             <div
               key={day}
-              className="text-center text-sm font-semibold text-gray-600 dark:text-gray-400 py-2"
+              className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5"
             >
               {getShortDayName(day)}
             </div>

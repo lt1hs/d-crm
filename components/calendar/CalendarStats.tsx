@@ -23,11 +23,55 @@ const CalendarStats: React.FC<CalendarStatsProps> = ({ events }) => {
       label: 'Total Events',
       value: events.length,
       icon: IconCalendar,
-      color: 'text-blue-600 bg-blue-100 dark:bg-blue-900/20',
+      color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20',
     },
     {
       label: 'Today',
       value: todayEvents,
+      icon: IconClock,
+      color: 'text-green-600 bg-green-50 dark:bg-green-900/20',
+    },
+    {
+      label: 'Upcoming',
+      value: upcomingEvents,
+      icon: IconAlertCircle,
+      color: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20',
+    },
+    {
+      label: 'Completed',
+      value: completedEvents,
+      icon: IconCheck,
+      color: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20',
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {stats.map((stat, index) => (
+        <div
+          key={index}
+          className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-md border border-gray-200/50 dark:border-gray-700/50 p-3 hover:bg-white dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-0.5">
+                {stat.label}
+              </p>
+              <p className="text-xl font-semibold text-gray-900 dark:text-white">
+                {stat.value}
+              </p>
+            </div>
+            <div className={`p-1.5 rounded ${stat.color}`}>
+              <stat.icon className="w-3.5 h-3.5" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default CalendarStats;
       icon: IconClock,
       color: 'text-green-600 bg-green-100 dark:bg-green-900/20',
     },

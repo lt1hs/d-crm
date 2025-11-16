@@ -54,21 +54,18 @@ const CalendarFilters: React.FC<CalendarFiltersProps> = ({ filter, onFilterChang
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 space-y-4">
+    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-md border border-gray-200/50 dark:border-gray-700/50 p-3 space-y-3">
       {/* Search */}
       <div>
-        <label htmlFor="calendar-search" className="block text-sm font-medium mb-2">
-          Search Events
-        </label>
         <div className="relative">
-          <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
           <input
             id="calendar-search"
             type="text"
             value={filter.searchTerm}
             onChange={handleSearchChange}
-            placeholder="Search by title..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="Search events..."
+            className="w-full pl-8 pr-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
       </div>
@@ -76,41 +73,39 @@ const CalendarFilters: React.FC<CalendarFiltersProps> = ({ filter, onFilterChang
       {/* Event Types */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-medium flex items-center gap-2">
-            <IconFilter className="w-4 h-4" />
-            Event Types
-          </label>
-          <div className="flex gap-2">
+          <h4 className="text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">Types</h4>
+          <div className="flex gap-1 text-xs">
             <button
               onClick={handleSelectAll}
-              className="text-xs text-blue-600 hover:text-blue-700"
+              className="text-blue-600 hover:text-blue-700 font-medium"
               type="button"
             >
               All
             </button>
+            <span className="text-gray-400">|</span>
             <button
               onClick={handleClearAll}
-              className="text-xs text-gray-600 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 font-medium"
               type="button"
             >
               None
             </button>
           </div>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-1">
           {eventTypes.map(type => (
             <label
               key={type.value}
-              className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded transition-colors"
+              className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 p-1 rounded transition-colors group"
             >
               <input
                 type="checkbox"
                 checked={filter.types.includes(type.value)}
                 onChange={() => handleTypeToggle(type.value)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="w-3 h-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-1"
               />
-              <div className={`w-3 h-3 rounded ${type.color}`} />
-              <span className="text-sm">{type.label}</span>
+              <div className={`w-2 h-2 rounded ${type.color}`} />
+              <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">{type.label}</span>
             </label>
           ))}
         </div>
@@ -118,20 +113,20 @@ const CalendarFilters: React.FC<CalendarFiltersProps> = ({ filter, onFilterChang
 
       {/* Status Filter */}
       <div>
-        <label className="block text-sm font-medium mb-2">Status</label>
-        <div className="space-y-2">
+        <h4 className="text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">Status</h4>
+        <div className="space-y-1">
           {statusOptions.map(status => (
             <label
               key={status.value}
-              className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 rounded transition-colors"
+              className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 p-1 rounded transition-colors group"
             >
               <input
                 type="checkbox"
                 checked={filter.status.includes(status.value)}
                 onChange={() => handleStatusToggle(status.value)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="w-3 h-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-1"
               />
-              <span className="text-sm">{status.label}</span>
+              <span className="text-xs text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100">{status.label}</span>
             </label>
           ))}
         </div>
@@ -139,17 +134,19 @@ const CalendarFilters: React.FC<CalendarFiltersProps> = ({ filter, onFilterChang
 
       {/* Active Filters Count */}
       {(filter.types.length > 0 || filter.status.length > 0 || filter.searchTerm) && (
-        <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Active filters: {filter.types.length + filter.status.length + (filter.searchTerm ? 1 : 0)}
+        <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">
+              {filter.types.length + filter.status.length + (filter.searchTerm ? 1 : 0)} filters
+            </span>
+            <button
+              onClick={() => onFilterChange({ types: [], status: [], searchTerm: '' })}
+              className="text-xs text-red-600 hover:text-red-700 font-medium"
+              type="button"
+            >
+              Clear
+            </button>
           </div>
-          <button
-            onClick={() => onFilterChange({ types: [], status: [], searchTerm: '' })}
-            className="mt-2 text-sm text-red-600 hover:text-red-700"
-            type="button"
-          >
-            Clear all filters
-          </button>
         </div>
       )}
     </div>
