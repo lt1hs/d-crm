@@ -17,6 +17,8 @@ import MediaGallery from './MediaGallery';
 import ExportChat from './ExportChat';
 import MentionInput from './MentionInput';
 import EnhancedMessageInput from './EnhancedMessageInput';
+import TypingIndicator from './TypingIndicator';
+import MessageStatus from './MessageStatus';
 import TimeOffRequest, { TimeOffRequestData } from './TimeOffRequest';
 
 const ChatMessageView: React.FC = () => {
@@ -30,7 +32,15 @@ const ChatMessageView: React.FC = () => {
     pinConversation,
     archiveConversation,
     deleteConversation,
-    setActiveConversation
+    setActiveConversation,
+    loadMoreMessages,
+    setTyping,
+    hasMoreMessages,
+    loadingMore,
+    typingUsers,
+    onlineUsers,
+    loading,
+    conversationLoading
   } = useEnhancedChat();
   const { currentUser } = useAuth();
   const [messageInput, setMessageInput] = useState('');
@@ -61,22 +71,43 @@ const ChatMessageView: React.FC = () => {
 
   if (!activeConversation) return null;
 
-  const handleSendMessage = () => {
-    if (!messageInput.trim()) return;
-    
-    sendMessage(activeConversation.id, messageInput.trim());
-    setMessageInput('');
-  };
+  const [isSending, setIsSending] = useState(false);
+  const lastSentMessage = useRef<string>('');
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+  const handleSendMessage = async () => {
+    if (!messageInput.trim() || isSending) return;
+    
+    // Prevent duplicate sends of the same message
+    if (lastSentMessage.current === messageInput.trim()) return;
+    
+    setIsSending(true);
+    lastSentMessage.current = messageInput.trim();
+    
+    try {
+      await sendMessage(activeConversation.id, messageInput.trim());
+      setMessageInput('');
+    } finally {
+      setTimeout(() => {
+        setIsSending(false);
+        lastSentMessage.current = '';
+      }, 1000);
     }
   };
 
-  const handleEnhancedSend = () => {
-    handleSendMessage();
+  const handleTyping = (isTyping: boolean) => {
+    if (activeConversation) {
+      setTyping(activeConversation.id, isTyping);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (hasMoreMessages && !loadingMore) {
+      loadMoreMessages();
+    }
+  };
+
+  const handleEnhancedSend = async () => {
+    await handleSendMessage();
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -380,7 +411,14 @@ const ChatMessageView: React.FC = () => {
         className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 bg-gray-50 dark:bg-gray-900"
         style={{ height: 0 }}
       >
-        {activeConversation.messages.length === 0 ? (
+        {conversationLoading || (loading && activeConversation.messages.length === 0) ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="flex flex-col items-center space-y-3">
+              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Loading messages...</p>
+            </div>
+          </div>
+        ) : activeConversation.messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 p-8">
             {activeConversation.type === 'personal' ? (
               <>
@@ -396,12 +434,26 @@ const ChatMessageView: React.FC = () => {
             )}
           </div>
         ) : (
-          activeConversation.messages.map(msg => {
-            const isOwn = msg.senderId === currentUser?.id;
-            const isEditing = editingMessageId === msg.id;
+          <>
+            {/* Load More Button */}
+            {hasMoreMessages && (
+              <div className="flex justify-center mb-4">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-lg disabled:opacity-50"
+                >
+                  {loadingMore ? 'Loading...' : 'Load More Messages'}
+                </button>
+              </div>
+            )}
+            
+            {activeConversation.messages.map(msg => {
+              const isOwn = msg.senderId === currentUser?.id;
+              const isEditing = editingMessageId === msg.id;
 
-            return (
-              <div
+              return (
+                <div
                 key={msg.id}
                 id={`message-${msg.id}`}
                 className={`flex gap-2 ${isOwn ? 'flex-row-reverse' : 'flex-row'} transition-all duration-300`}
@@ -560,21 +612,29 @@ const ChatMessageView: React.FC = () => {
                     </div>
                   )}
                   
-                  {/* Timestamp and Read Receipt */}
+                  {/* Message Status */}
                   <div className="flex items-center gap-1 mt-1">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatDistanceToNow(msg.timestamp)}
-                    </span>
-                    {isOwn && (
-                      <span className="text-xs text-blue-500">
-                        {msg.read ? '✓✓' : '✓'}
+                    {isOwn ? (
+                      <MessageStatus 
+                        status={msg.read ? 'read' : 'delivered'} 
+                        timestamp={msg.timestamp} 
+                      />
+                    ) : (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {formatDistanceToNow(msg.timestamp)}
                       </span>
                     )}
                   </div>
                 </div>
               </div>
             );
-          })
+            })}
+            
+            {/* Typing Indicator */}
+            <TypingIndicator 
+              typingUsers={typingUsers.get(activeConversation.id) || []} 
+            />
+          </>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -644,6 +704,7 @@ const ChatMessageView: React.FC = () => {
           value={messageInput}
           onChange={setMessageInput}
           onSend={handleEnhancedSend}
+          onTyping={handleTyping}
           onFileClick={() => fileInputRef.current?.click()}
           onVoiceClick={() => setShowVoiceRecorder(true)}
           placeholder="Type a message..."

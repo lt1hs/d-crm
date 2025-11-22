@@ -34,6 +34,22 @@ const MAX_NOTIFICATIONS = 100;
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { currentUser } = useAuth() || {};
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notificationQueue, setNotificationQueue] = useState<Notification[]>([]);
+
+  // Batch notifications to prevent UI spam
+  useEffect(() => {
+    if (notificationQueue.length === 0) return;
+
+    const timer = setTimeout(() => {
+      setNotifications(prev => {
+        const combined = [...notificationQueue, ...prev];
+        return combined.slice(0, 50); // Keep only 50 most recent
+      });
+      setNotificationQueue([]);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [notificationQueue]);
 
   // Load notifications from database and localStorage on mount
   useEffect(() => {

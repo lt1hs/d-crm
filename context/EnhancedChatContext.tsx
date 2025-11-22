@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { ChatConversation, ChatMessage, ChatUser, ChatChannel, ChatGroup, ChatFile } from '../types/chat';
 import { useAuth } from './AuthContext';
 import { chatApi, uploadFile as uploadToStorage, usersApi } from '../utils/api';
@@ -14,9 +14,16 @@ interface EnhancedChatContextType {
   files: ChatFile[];
   unreadCount: number;
   loading: boolean;
+  conversationLoading: boolean;
+  loadingMore: boolean;
+  hasMoreMessages: boolean;
+  onlineUsers: Set<string>;
+  typingUsers: Map<string, string[]>;
   viewMode: 'compact' | 'fullpage';
   setViewMode: (mode: 'compact' | 'fullpage') => void;
   setActiveConversation: (conversation: ChatConversation | null) => void;
+  loadMoreMessages: () => Promise<void>;
+  setTyping: (conversationId: string, isTyping: boolean) => void;
   sendMessage: (conversationId: string, content: string, type?: 'text' | 'image' | 'file', fileData?: any) => Promise<void>;
   markAsRead: (conversationId: string) => Promise<void>;
   startDirectChat: (userId: string) => Promise<void>;
@@ -63,7 +70,14 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
   const [users, setUsers] = useState<ChatUser[]>([]);
   const [files, setFiles] = useState<ChatFile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [typingUsers, setTypingUsers] = useState<Map<string, string[]>>(new Map());
+  const [messageCache, setMessageCache] = useState<Map<string, ChatMessage[]>>(new Map());
+  const [conversationLoading, setConversationLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'compact' | 'fullpage'>('compact');
+  const subscriptionRef = useRef<any>(null);
 
   // Enable chat notifications
   useChatNotifications();
@@ -74,6 +88,37 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
       const cleanup = subscribeToMessages();
       return cleanup;
     }
+  }, [currentUser]);
+
+  // Online status tracking
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const channel = supabase.channel('online-users')
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const online = new Set(Object.keys(state));
+        setOnlineUsers(online);
+      })
+      .on('presence', { event: 'join' }, ({ key }) => {
+        setOnlineUsers(prev => new Set([...prev, key]));
+      })
+      .on('presence', { event: 'leave' }, ({ key }) => {
+        setOnlineUsers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(key);
+          return newSet;
+        });
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ user_id: currentUser.id, online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [currentUser]);
 
   const loadData = async () => {
@@ -133,9 +178,14 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
     }
   };
 
-  const loadConversationMessages = async (conversationId: string) => {
+  const loadConversationMessages = async (conversationId: string, offset = 0, limit = 50) => {
     try {
-      const messages = await chatApi.getMessages(conversationId);
+      // Check cache first for initial load
+      if (offset === 0 && messageCache.has(conversationId)) {
+        return messageCache.get(conversationId)!;
+      }
+
+      const messages = await chatApi.getMessages(conversationId, limit, offset);
       
       const mappedMessages: ChatMessage[] = messages.map((m: any) => ({
         id: m.id,
@@ -157,6 +207,13 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
         })) || []
       }));
 
+      // Update cache for initial load
+      if (offset === 0) {
+        messageCache.set(conversationId, mappedMessages);
+        setMessageCache(new Map(messageCache));
+      }
+
+      setHasMoreMessages(messages.length === limit);
       return mappedMessages;
     } catch (error) {
       console.error('Failed to load messages:', error);
@@ -164,11 +221,47 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
     }
   };
 
+  const loadMoreMessages = async () => {
+    if (!activeConversation || loadingMore || !hasMoreMessages) return;
+    
+    setLoadingMore(true);
+    try {
+      const offset = activeConversation.messages.length;
+      const olderMessages = await loadConversationMessages(activeConversation.id, offset);
+      
+      setActiveConversation(prev => prev ? {
+        ...prev,
+        messages: [...olderMessages, ...prev.messages]
+      } : null);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const setTyping = (conversationId: string, isTyping: boolean) => {
+    if (!currentUser) return;
+    
+    setTypingUsers(prev => {
+      const newMap = new Map(prev);
+      const currentTypers = newMap.get(conversationId) || [];
+      
+      if (isTyping) {
+        if (!currentTypers.includes(currentUser.id)) {
+          newMap.set(conversationId, [...currentTypers, currentUser.id]);
+        }
+      } else {
+        newMap.set(conversationId, currentTypers.filter(id => id !== currentUser.id));
+      }
+      
+      return newMap;
+    });
+  };
+
   // Debounce timer for conversation list updates
   let updateConversationsTimer: NodeJS.Timeout | null = null;
 
   const subscribeToMessages = () => {
-    if (!currentUser) return;
+    if (!currentUser || subscriptionRef.current) return () => {};
 
     console.log('🔔 Setting up real-time message subscription');
 
@@ -223,10 +316,21 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
               return prev;
             }
 
+            // Remove any temporary optimistic messages with similar content and timestamp
+            const filteredMessages = prev.messages.filter(m => {
+              if (m.id.startsWith('temp-') && 
+                  m.content === newMessage.content && 
+                  m.senderId === newMessage.sender_id) {
+                console.log('🗑️ Removing optimistic message');
+                return false;
+              }
+              return true;
+            });
+
             // Add message to the list
             return {
               ...prev,
-              messages: [...prev.messages, optimisticMessage],
+              messages: [...filteredMessages, optimisticMessage],
               lastMessage: newMessage.content,
               lastMessageTime: newMessage.created_at
             };
@@ -260,12 +364,15 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
         }
       });
 
+    subscriptionRef.current = channel;
+
     return () => {
       console.log('👋 Cleaning up real-time subscription');
       if (updateConversationsTimer) {
         clearTimeout(updateConversationsTimer);
       }
       channel.unsubscribe();
+      subscriptionRef.current = null;
     };
   };
 
@@ -286,47 +393,7 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
         fileData?.size
       );
 
-      // Optimistically add message to local state
-      if (activeConversation?.id === conversationId) {
-        const optimisticMessage: ChatMessage = {
-          id: `temp-${Date.now()}`, // Temporary ID
-          senderId: currentUser.id,
-          senderName: currentUser.fullName,
-          senderAvatar: currentUser.avatar || '/imgs/default-avatar.png',
-          content,
-          timestamp: new Date().toISOString(),
-          read: false,
-          type: messageType,
-          fileUrl: fileData?.url,
-          fileName: fileData?.name,
-          fileSize: fileData?.size,
-          edited: false,
-          reactions: []
-        };
-
-        setActiveConversation(prev => prev ? {
-          ...prev,
-          messages: [...prev.messages, optimisticMessage],
-          lastMessage: content,
-          lastMessageTime: new Date().toISOString()
-        } : null);
-
-        // Reload messages from database after a short delay to get the real message
-        setTimeout(async () => {
-          try {
-            console.log('Reloading messages from database...');
-            const messages = await loadConversationMessages(conversationId);
-            setActiveConversation(prev => prev ? {
-              ...prev,
-              messages,
-              lastMessage: content,
-              lastMessageTime: new Date().toISOString()
-            } : null);
-          } catch (error) {
-            console.error('Failed to reload messages:', error);
-          }
-        }, 1000); // Wait 1 second for the message to be saved
-      }
+      // Real-time listener will handle adding the message to UI
     } catch (error) {
       console.error('Failed to send message:', error);
       throw error;
@@ -618,8 +685,12 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
   // Load messages when active conversation changes
   useEffect(() => {
     if (activeConversation && activeConversation.messages.length === 0) {
+      setConversationLoading(true);
       loadConversationMessages(activeConversation.id).then(messages => {
         setActiveConversation(prev => prev ? { ...prev, messages } : null);
+        setConversationLoading(false);
+      }).catch(() => {
+        setConversationLoading(false);
       });
     }
   }, [activeConversation?.id]);
@@ -634,9 +705,16 @@ export const EnhancedChatProvider: React.FC<EnhancedChatProviderProps> = ({ chil
       files,
       unreadCount,
       loading,
+      conversationLoading,
+      loadingMore,
+      hasMoreMessages,
+      onlineUsers,
+      typingUsers,
       viewMode,
       setViewMode,
       setActiveConversation,
+      loadMoreMessages,
+      setTyping,
       sendMessage,
       markAsRead,
       startDirectChat,

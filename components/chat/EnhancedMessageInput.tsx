@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   IconSend, IconPaperclip, IconMicrophone, IconX, IconSmile 
 } from '../Icons';
@@ -9,6 +9,7 @@ interface EnhancedMessageInputProps {
   onSend: () => void;
   onFileClick: () => void;
   onVoiceClick: () => void;
+  onTyping?: (isTyping: boolean) => void;
   disabled?: boolean;
   placeholder?: string;
   maxLength?: number;
@@ -20,13 +21,40 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
   onSend,
   onFileClick,
   onVoiceClick,
+  onTyping,
   disabled = false,
   placeholder = 'Type a message...',
   maxLength = 5000
 }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Handle typing indicators
+  const handleTypingStart = useCallback(() => {
+    if (!isTyping && onTyping) {
+      setIsTyping(true);
+      onTyping(true);
+    }
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set timeout to stop typing indicator
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      if (onTyping) onTyping(false);
+    }, 2000);
+  }, [isTyping, onTyping]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onChange(e.target.value);
+    handleTypingStart();
+  };
 
   // Auto-resize textarea
   useEffect(() => {
@@ -170,7 +198,7 @@ const EnhancedMessageInput: React.FC<EnhancedMessageInputProps> = ({
           <textarea
             ref={textareaRef}
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={handleChange}
             onKeyDown={handleKeyDown}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
