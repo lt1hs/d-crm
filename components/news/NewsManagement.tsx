@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NewsPost, NewsStatus } from '../../types/news';
 import { useAuth } from '../../context/AuthContext';
-import { Plus, Filter, Search } from '../Icons';
+import { IconPlus, IconFilter, IconSearch, IconNews } from '../Icons';
 import EnhancedNewsForm from './EnhancedNewsForm';
 import NewsList from './NewsList';
 import NewsStats from './NewsStats';
@@ -146,45 +146,52 @@ const NewsManagement: React.FC = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">News Management</h1>
-          <p className="text-gray-600 mt-1">Manage news posts with workflow approval</p>
+          <h1 className="text-xl font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <IconNews className="w-5 h-5 text-blue-600" />
+            News Management
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
+            Manage news posts with workflow approval
+          </p>
         </div>
-        {canCreate && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            <Plus className="w-5 h-5" />
-            Create Post
-          </button>
-        )}
+        <button
+          onClick={() => setShowForm(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+        >
+          <IconPlus className="w-3.5 h-3.5" />
+          Create Post
+        </button>
       </div>
 
       {/* Stats */}
       <NewsStats posts={posts} />
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-lg shadow p-4 space-y-4">
-        <div className="flex gap-4">
+      <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-md border border-gray-200/50 dark:border-gray-700/50 p-3 space-y-3">
+        <div className="flex gap-3">
           <div className="flex-1 relative">
-            <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <IconSearch className="w-3.5 h-3.5 absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Search posts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg"
+              className="w-full pl-8 pr-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50"
+            className={`flex items-center gap-1.5 px-3 py-2 border rounded-md text-sm font-medium transition-colors ${
+              showFilters 
+                ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-400'
+                : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+            }`}
           >
-            <Filter className="w-5 h-5" />
+            <IconFilter className="w-3.5 h-3.5" />
             Filters
           </button>
         </div>

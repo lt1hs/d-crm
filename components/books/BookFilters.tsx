@@ -19,29 +19,29 @@ const BookFilters: React.FC<BookFiltersProps> = ({
   onSortChange,
 }) => {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <IconFilter className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+    <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-md border border-gray-200/50 dark:border-gray-700/50 p-3">
+      <div className="flex items-center gap-2 mb-3">
+        <IconFilter className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" />
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
           Filters & Search
         </h3>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
         {/* Search */}
         <div className="lg:col-span-2">
           <label htmlFor="search" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
             Search
           </label>
           <div className="relative">
-            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <IconSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <input
               id="search"
               type="text"
               value={filter.search || ''}
               onChange={(e) => onFilterChange({ ...filter, search: e.target.value || undefined })}
               placeholder="Title, author, ISBN..."
-              className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-8 pr-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
         </div>
@@ -55,12 +55,12 @@ const BookFilters: React.FC<BookFiltersProps> = ({
             id="category"
             value={filter.category || ''}
             onChange={(e) => onFilterChange({ ...filter, category: e.target.value || undefined })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">All Categories</option>
-            {BOOK_CATEGORIES.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.icon} {cat.name}
+            {BOOK_CATEGORIES.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
               </option>
             ))}
           </select>
@@ -75,12 +75,12 @@ const BookFilters: React.FC<BookFiltersProps> = ({
             id="language"
             value={filter.language || ''}
             onChange={(e) => onFilterChange({ ...filter, language: e.target.value || undefined })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">All Languages</option>
-            {BOOK_LANGUAGES.map((lang) => (
-              <option key={lang.code} value={lang.code}>
-                {lang.name}
+            {BOOK_LANGUAGES.map((language) => (
+              <option key={language.code} value={language.code}>
+                {language.name}
               </option>
             ))}
           </select>
@@ -98,10 +98,10 @@ const BookFilters: React.FC<BookFiltersProps> = ({
               const value = e.target.value;
               onFilterChange({
                 ...filter,
-                isActive: value === '' ? undefined : value === 'active',
+                isActive: value === '' ? undefined : value === 'active'
               });
             }}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">All Status</option>
             <option value="active">Active</option>
@@ -112,63 +112,45 @@ const BookFilters: React.FC<BookFiltersProps> = ({
         {/* Sort */}
         <div>
           <label htmlFor="sort" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-            <IconSort className="w-3 h-3 inline mr-1" />
+            <IconSort className="inline w-3 h-3 mr-1" />
             Sort By
           </label>
-          <div className="flex gap-2">
-            <select
-              id="sort"
-              value={sortBy}
-              onChange={(e) => onSortChange(e.target.value as BookSortBy, sortOrder)}
-              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="createdAt">Date Added</option>
-              <option value="title">Title</option>
-              <option value="author">Author</option>
-              <option value="publishedDate">Published</option>
-              <option value="rating">Rating</option>
-            </select>
-            <button
-              onClick={() => onSortChange(sortBy, sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-              title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-            >
-              {sortOrder === 'asc' ? '↑' : '↓'}
-            </button>
-          </div>
+          <select
+            id="sort"
+            value={`${sortBy}-${sortOrder}`}
+            onChange={(e) => {
+              const [by, order] = e.target.value.split('-') as [BookSortBy, BookSortOrder];
+              onSortChange(by, order);
+            }}
+            className="w-full px-2.5 py-2 border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="createdAt-desc">Newest First</option>
+            <option value="createdAt-asc">Oldest First</option>
+            <option value="title-asc">Title A-Z</option>
+            <option value="title-desc">Title Z-A</option>
+            <option value="author-asc">Author A-Z</option>
+            <option value="author-desc">Author Z-A</option>
+            <option value="publishedYear-desc">Year (New-Old)</option>
+            <option value="publishedYear-asc">Year (Old-New)</option>
+          </select>
         </div>
       </div>
 
-      {/* Active Filters */}
+      {/* Active Filters Count */}
       {(filter.search || filter.category || filter.language || filter.isActive !== undefined) && (
-        <div className="mt-4 flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-gray-500 dark:text-gray-400">Active filters:</span>
-          {filter.search && (
-            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs">
-              Search: {filter.search}
+        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">
+              {[filter.search, filter.category, filter.language, filter.isActive !== undefined].filter(Boolean).length} active filters
             </span>
-          )}
-          {filter.category && (
-            <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded text-xs">
-              {BOOK_CATEGORIES.find(c => c.id === filter.category)?.name}
-            </span>
-          )}
-          {filter.language && (
-            <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded text-xs">
-              {BOOK_LANGUAGES.find(l => l.code === filter.language)?.name}
-            </span>
-          )}
-          {filter.isActive !== undefined && (
-            <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">
-              {filter.isActive ? 'Active' : 'Inactive'}
-            </span>
-          )}
-          <button
-            onClick={() => onFilterChange({})}
-            className="px-2 py-1 text-xs text-red-600 dark:text-red-400 hover:underline"
-          >
-            Clear all
-          </button>
+            <button
+              onClick={() => onFilterChange({})}
+              className="text-xs text-red-600 hover:text-red-700 font-medium"
+              type="button"
+            >
+              Clear All
+            </button>
+          </div>
         </div>
       )}
     </div>

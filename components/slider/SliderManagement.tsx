@@ -93,39 +93,40 @@ const SliderManagement: React.FC = () => {
   const sortedSlides = sortSlides(slides);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col space-y-5">
       {/* Header */}
-      <div className="flex-shrink-0 mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex-shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+            <h1 className="text-xl font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <IconImage className="w-5 h-5 text-blue-600" />
               Slider Management
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Create and manage image sliders for your site
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              Create and manage image sliders
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setShowPreview(!showPreview)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 showPreview
                   ? 'bg-purple-600 text-white hover:bg-purple-700'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
-              <IconEye className="w-4 h-4" />
+              <IconEye className="w-3.5 h-3.5" />
               Preview
             </button>
             <button
               onClick={() => setShowSettings(!showSettings)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 showSettings
                   ? 'bg-gray-600 text-white hover:bg-gray-700'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
               }`}
             >
-              <IconSettings className="w-4 h-4" />
+              <IconSettings className="w-3.5 h-3.5" />
               Settings
             </button>
             <button
@@ -133,16 +134,16 @@ const SliderManagement: React.FC = () => {
                 setEditingSlide(null);
                 setShowSlideForm(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
             >
-              <IconPlus className="w-4 h-4" />
+              <IconPlus className="w-3.5 h-3.5" />
               Add Slide
             </button>
             <button
               onClick={handleSaveSlider}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm hover:shadow-md"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
             >
-              <IconSave className="w-4 h-4" />
+              <IconSave className="w-3.5 h-3.5" />
               Save
             </button>
           </div>
@@ -150,7 +151,7 @@ const SliderManagement: React.FC = () => {
       </div>
 
       {/* Slider Location Selector */}
-      <div className="flex-shrink-0 mb-6">
+      <div className="flex-shrink-0">
         <SliderLocationSelector
           locations={SLIDER_LOCATIONS}
           selectedLocation={selectedLocation}
@@ -160,7 +161,7 @@ const SliderManagement: React.FC = () => {
 
       {/* Preview */}
       {showPreview && (
-        <div className="flex-shrink-0 mb-6 animate-in slide-in-from-top duration-300">
+        <div className="flex-shrink-0 animate-in slide-in-from-top duration-300">
           <SliderPreview 
             slides={sortedSlides.filter(s => s.isActive)} 
             settings={currentSettings}
@@ -170,7 +171,7 @@ const SliderManagement: React.FC = () => {
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className="flex-shrink-0 mb-6 animate-in slide-in-from-top duration-300">
+        <div className="flex-shrink-0 animate-in slide-in-from-top duration-300">
           <SliderSettings
             settings={currentSettings}
             onUpdate={setCurrentSettings}
@@ -180,42 +181,42 @@ const SliderManagement: React.FC = () => {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0">
         {/* Slides List */}
         <div className={`${showSlideForm ? 'lg:col-span-8' : 'lg:col-span-12'} flex flex-col min-h-0`}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col h-full overflow-hidden">
-            <div className="flex-shrink-0 p-5 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-800">
+          <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur rounded-md border border-gray-200/50 dark:border-gray-700/50 flex flex-col h-full overflow-hidden">
+            <div className="flex-shrink-0 p-3 border-b border-gray-200/50 dark:border-gray-700/50 bg-gray-50/50 dark:bg-gray-900/20">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  <h2 className="text-base font-medium text-gray-900 dark:text-gray-100">
                     Slides
                   </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {slides.length} {slides.length === 1 ? 'slide' : 'slides'} • Drag to reorder
                   </p>
                 </div>
                 {slides.length > 0 && (
-                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded font-medium">
                       {slides.filter(s => s.isActive).length} Active
                     </span>
-                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+                    <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded font-medium">
                       {slides.filter(s => !s.isActive).length} Inactive
                     </span>
                   </div>
                 )}
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-5">
+            <div className="flex-1 overflow-y-auto p-3">
               {slides.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center mb-4">
-                    <IconImage className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+                <div className="flex flex-col items-center justify-center h-full text-center py-8">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded-full flex items-center justify-center mb-3">
+                    <IconImage className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">
                     No slides yet
                   </h3>
-                  <p className="text-gray-500 dark:text-gray-400 mb-4 max-w-sm">
+                  <p className="text-gray-500 dark:text-gray-400 mb-3 max-w-sm text-sm">
                     Create beautiful image sliders with captions and call-to-action buttons. Perfect for showcasing your content.
                   </p>
                   <button
@@ -223,9 +224,9 @@ const SliderManagement: React.FC = () => {
                       setEditingSlide(null);
                       setShowSlideForm(true);
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
                   >
-                    <IconPlus className="w-4 h-4" />
+                    <IconPlus className="w-3.5 h-3.5" />
                     Add Your First Slide
                   </button>
                 </div>
