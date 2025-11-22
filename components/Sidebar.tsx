@@ -148,7 +148,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onNavigate, currentPage }) => {
                 p-3 
                 flex items-center 
                 ${isCollapsed ? 'justify-center' : 'justify-between'}
-            `} style={{ height: '61px' }}>
+            `} style={{ height: '65px' }}>
                 {isCollapsed ? (
                     <div className="flex-shrink-0">
                         <img 

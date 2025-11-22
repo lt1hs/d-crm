@@ -4,7 +4,7 @@ import { rolePermissions } from '../../data/rolePermissions';
 
 interface UserFormProps {
   user: UserAccount | null;
-  onSave: (user: Omit<UserAccount, 'id' | 'createdAt'>) => void;
+  onSave: (user: Omit<UserAccount, 'id' | 'createdAt'> & { password?: string }) => void;
   onCancel: () => void;
 }
 
@@ -16,6 +16,7 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel }) => {
     role: 'viewer' as UserRole,
     status: 'active' as 'active' | 'inactive' | 'suspended',
     avatar: '',
+    password: '',
   });
 
   useEffect(() => {
@@ -33,6 +34,13 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // For new users, password is required
+    if (!user && !formData.password) {
+      alert('Password is required for new users');
+      return;
+    }
+    
     onSave(formData);
   };
 
@@ -113,6 +121,18 @@ const UserForm: React.FC<UserFormProps> = ({ user, onSave, onCancel }) => {
               onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
               className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
               placeholder="https://example.com/avatar.jpg"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Password *</label>
+            <input
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+              required={!user}
+              placeholder={user ? "Leave blank to keep current password" : "Enter password"}
             />
           </div>
 

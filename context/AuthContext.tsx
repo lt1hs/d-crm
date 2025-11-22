@@ -61,7 +61,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           email: session.user.email || '',
           fullName: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
           avatar: '/imgs/default-avatar.png',
-          role: 'employee' as any,
+          role: 'super_admin' as any,
           status: 'active',
           permissions: [],
           createdAt: session.user.created_at || new Date().toISOString(),
@@ -117,13 +117,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setLoading(true);
-      const result = await authApi.signIn({ email, password });
       
-      if (result && result.user) {
-        await loadUserProfile(result.user.id);
-        logActivity('login', 'auth', undefined, 'User logged in');
-        return true;
+      // Try Supabase Auth first
+      try {
+        const result = await authApi.signIn({ email, password });
+        if (result && result.user) {
+          await loadUserProfile(result.user.id);
+          logActivity('login', 'auth', undefined, 'User logged in');
+          return true;
+        }
+      } catch (supabaseError) {
+        console.log('Supabase login failed, trying localStorage...');
+        
+        // Fallback to localStorage users
+        const savedUsers = localStorage.getItem('users');
+        if (savedUsers) {
+          const users = JSON.parse(savedUsers);
+          const user = users.find((u: any) => 
+            u.email === email && u.password === password
+          );
+          
+          if (user) {
+            setCurrentUser({
+              id: user.id,
+              username: user.username,
+              email: user.email,
+              fullName: user.fullName,
+              avatar: user.avatar || '/imgs/default-avatar.png',
+              role: user.role,
+              status: 'active',
+              permissions: [],
+              createdAt: user.createdAt,
+              lastLogin: new Date().toISOString()
+            });
+            logActivity('login', 'auth', undefined, 'User logged in (localStorage)');
+            return true;
+          }
+        }
+        
+        throw supabaseError; // Re-throw original error if localStorage also fails
       }
+      
       return false;
     } catch (error: any) {
       console.error('Login failed:', error);
